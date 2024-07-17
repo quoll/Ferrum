@@ -175,7 +175,7 @@ kernel void vector_exp2 (const device REAL* x, uint offset_x, uint stride_x,
 kernel void vector_exp10 (const device REAL* x, uint offset_x, uint stride_x,
                           device REAL* y, uint offset_y, uint stride_y,
                           uint id [[thread_position_in_grid]]) {
-    y[offset_y + id * stride_y] = exp10(x[offset_x + id * stride_x]);
+    y[offset_y + id * stride_y] = pow((REAL)10.0, x[offset_x + id * stride_x]);
 }
 
 
@@ -627,207 +627,278 @@ kernel void ge_div (const uint sd [[constant(0)]], const uint fd [[constant(1)]]
 }
 
 
-//     __global__ void ge_inv (const int sd, const int fd,
-//                             const REAL* a, const int offset_a, const int ld_a,
-//                             REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = (REAL)1.0 / a[offset_a + gid_0 + gid_1 * ld_a];
-//         }
-//     }
+kernel void ge_inv (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                    const device REAL* a [[buffer(2)]],
+                    const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                    device REAL* b [[buffer(5)]],
+                    const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                    uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = (REAL)1.0 / a[offset_a + gid_0 + gid_1 * ld_a];
+    }
+}
 
-//     __global__ void ge_abs (const int sd, const int fd,
-//                             const REAL* a, const int offset_a, const int ld_a,
-//                             REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(fabs)(a[offset_a + gid_0 + gid_1 * ld_a]);
-//         }
-//     }
 
-//     __global__ void ge_linear_frac (const int sd, const int fd,
-//                                     const REAL* a, const int offset_a, const int ld_a,
-//                                     const REAL* b, const int offset_b, const int ld_b,
-//                                     const REAL scalea, const REAL shifta, const REAL scaleb, const REAL shiftb,
-//                                     REAL* c, const int offset_c, const int ld_c) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             c[offset_c + gid_0 + gid_1 * ld_c] =
-//                 (scalea * a[offset_a + gid_0 + gid_1 * ld_a] + shifta) /
-//                 (scaleb * b[offset_b + gid_0 + gid_1 * ld_b] + shiftb);
-//         }
-//     }
+kernel void ge_abs (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                    const device REAL* a [[buffer(2)]],
+                    const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                    device REAL* b [[buffer(5)]],
+                    const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                    uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = fabs(a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
 
-//     __global__ void ge_scale_shift (const int sd, const int fd,
-//                                     const REAL* a, const int offset_a, const int ld_a,
-//                                     const REAL scalea, const REAL shifta, const REAL scaleb, const REAL shiftb,
-//                                     REAL* c, const int offset_c, const int ld_c) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             c[offset_c + gid_0 + gid_1 * ld_c] = scalea * a[offset_a + gid_0 + gid_1 * ld_a] + shifta;
-//
-//         }
-//     }
+kernel void ge_linear_frac (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                            const device REAL* a [[buffer(2)]],
+                            const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                            const device REAL* b [[buffer(5)]],
+                            const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                            const REAL scalea [[constant(8)]], const REAL shifta [[constant(9)]],
+                            const REAL scaleb [[constant(10)]], const REAL shiftb [[constant(11)]],
+                            device REAL* c [[buffer(12)]],
+                            const int offset_c [[constant(13)]], const int ld_c [[constant(14)]],
+                            uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] =
+            (scalea * a[offset_a + gid_0 + gid_1 * ld_a] + shifta) /
+            (scaleb * b[offset_b + gid_0 + gid_1 * ld_b] + shiftb);
+    }
+}
 
-//     __global__ void ge_fmod (const int sd, const int fd,
-//                              const REAL* a, const int offset_a, const int ld_a,
-//                              const REAL* b, const int offset_b, const int ld_b,
-//                              REAL* c, const int offset_c, const int ld_c) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             c[offset_c + gid_0 + gid_1 * ld_c] =
-//                 CAST(fmod)(a[offset_a + gid_0 + gid_1 * ld_a], b[offset_b + gid_0 + gid_1 * ld_b]);
-//         }
-//     }
 
-//     __global__ void ge_frem (const int sd, const int fd,
-//                              const REAL* a, const int offset_a, const int ld_a,
-//                              const REAL* b, const int offset_b, const int ld_b,
-//                              REAL* c, const int offset_c, const int ld_c) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             c[offset_c + gid_0 + gid_1 * ld_c] =
-//                 CAST(remainder)(a[offset_a + gid_0 + gid_1 * ld_a], b[offset_b + gid_0 + gid_1 * ld_b]);
-//         }
-//     }
+// TODO: do the scaleb and shiftb values need to be included?
 
-//     __global__ void ge_sqrt (const int sd, const int fd,
-//                              const REAL* a, const int offset_a, const int ld_a,
-//                              REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(sqrt)(a[offset_a + gid_0 + gid_1 * ld_a]);
-//         }
-//     }
+kernel void ge_scale_shift (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                            const device REAL* a [[buffer(2)]],
+                            const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                            const REAL scalea [[constant(5)]], const REAL shifta [[constant(6)]],
+                            const REAL scaleb [[constant(7)]], const REAL shiftb [[constant(8)]],
+                            device REAL* c [[buffer(9)]],
+                            const int offset_c [[constant(10)]], const int ld_c [[constant(11)]],
+                            uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] = scalea * a[offset_a + gid_0 + gid_1 * ld_a] + shifta;
+    }
+}
 
-//     __global__ void ge_inv_sqrt (const int sd, const int fd,
-//                                  const REAL* a, const int offset_a, const int ld_a,
-//                                  REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(rsqrt)(a[offset_a + gid_0 + gid_1 * ld_a]);
-//         }
-//     }
 
-//     __global__ void ge_cbrt (const int sd, const int fd,
-//                              const REAL* a, const int offset_a, const int ld_a,
-//                              REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(cbrt)(a[offset_a + gid_0 + gid_1 * ld_a]);
-//         }
-//     }
+kernel void ge_fmod (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                     const device REAL* a [[buffer(2)]],
+                     const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                     const device REAL* b [[buffer(5)]],
+                     const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                     device REAL* c [[buffer(8)]],
+                     const int offset_c [[constant(9)]], const int ld_c [[constant(10)]],
+                     uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] = fmod(a[offset_a + gid_0 + gid_1 * ld_a],
+                                                  b[offset_b + gid_0 + gid_1 * ld_b]);
+    }
+}
 
-//     __global__ void ge_inv_cbrt (const int sd, const int fd,
-//                                  const REAL* a, const int offset_a, const int ld_a,
-//                                  REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(rcbrt)(a[offset_a + gid_0 + gid_1 * ld_a]);
-//         }
-//     }
 
-//     __global__ void ge_pow2o3 (const int sd, const int fd,
-//                                const REAL* a, const int offset_a, const int ld_a,
-//                                REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(pow)(a[offset_a + gid_0 + gid_1 * ld_a], REAL2o3);
-//         }
-//     }
+kernel void ge_frem (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                     const device REAL* a [[buffer(2)]],
+                     const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                     const device REAL* b [[buffer(5)]],
+                     const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                     device REAL* c [[buffer(8)]],
+                     const int offset_c [[constant(9)]], const int ld_c [[constant(10)]],
+                     uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] = remainder(a[offset_a + gid_0 + gid_1 * ld_a],
+                                                       b[offset_b + gid_0 + gid_1 * ld_b]);
+    }
+}
 
-//     __global__ void ge_pow3o2 (const int sd, const int fd,
-//                                const REAL* a, const int offset_a, const int ld_a,
-//                                REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(pow)(a[offset_a + gid_0 + gid_1 * ld_a], REAL3o2);
-//         }
-//     }
 
-//     __global__ void ge_pow (const int sd, const int fd,
-//                             const REAL* a, const int offset_a, const int ld_a,
-//                             const REAL* b, const int offset_b, const int ld_b,
-//                             REAL* c, const int offset_c, const int ld_c) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             c[offset_c + gid_0 + gid_1 * ld_c] =
-//                 CAST(pow)(a[offset_a + gid_0 + gid_1 * ld_a], b[offset_b + gid_0 + gid_1 * ld_b]);
-//         }
-//     }
+kernel void ge_sqrt (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                     const device REAL* a [[buffer(2)]],
+                     const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                     device REAL* b [[buffer(5)]],
+                     const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                     uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = sqrt(a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
 
-//     __global__ void ge_powx (const int sd, const int fd,
-//                              const REAL* a, const int offset_a, const int ld_a,
-//                              const REAL b,
-//                              REAL* c, const int offset_c, const int ld_c) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             c[offset_c + gid_0 + gid_1 * ld_c] = CAST(pow)(a[offset_a + gid_0 + gid_1 * ld_a], b);
-//         }
-//     }
 
-//     __global__ void ge_hypot (const int sd, const int fd,
-//                               const REAL* a, const int offset_a, const int ld_a,
-//                               const REAL* b, const int offset_b, const int ld_b,
-//                               REAL* c, const int offset_c, const int ld_c) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             c[offset_c + gid_0 + gid_1 * ld_c] =
-//                 CAST(hypot)(a[offset_a + gid_0 + gid_1 * ld_a], b[offset_b + gid_0 + gid_1 * ld_b]);
-//         }
-//     }
+kernel void ge_inv_sqrt (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                         const device REAL* a [[buffer(2)]],
+                         const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                         device REAL* b [[buffer(5)]],
+                         const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                         uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = (REAL)1.0 / sqrt(a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
 
-//     __global__ void ge_exp (const int sd, const int fd,
-//                             const REAL* a, const int offset_a, const int ld_a,
-//                             REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(exp)(a[offset_a + gid_0 + gid_1 * ld_a]);
-//         }
-//     }
 
-//     __global__ void ge_exp2 (const int sd, const int fd,
-//                              const REAL* a, const int offset_a, const int ld_a,
-//                              REAL* b, const int offset_b, const int ld_b) {
-//         const int gid_0 = blockIdx.x * blockDim.x + threadIdx.x;
-//         const int gid_1 = blockIdx.y * blockDim.y + threadIdx.y;
-//         const bool valid = (gid_0 < sd) && (gid_1 < fd);
-//         if (valid) {
-//             b[offset_b + gid_0 + gid_1 * ld_b] = CAST(exp2)(a[offset_a + gid_0 + gid_1 * ld_a]);
-//         }
-//     }
+kernel void ge_cbrt (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                     const device REAL* a [[buffer(2)]],
+                     const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                     device REAL* b [[buffer(5)]],
+                     const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                     uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = cbrt(a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
+
+
+kernel void ge_inv_cbrt (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                         const device REAL* a [[buffer(2)]],
+                         const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                         device REAL* b [[buffer(5)]],
+                         const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                         uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = (REAL)1.0 / cbrt(a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
+
+
+kernel void ge_pow2o3 (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                       const device REAL* a [[buffer(2)]],
+                       const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                       device REAL* b [[buffer(5)]],
+                       const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                       uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = pow(a[offset_a + gid_0 + gid_1 * ld_a], REAL2o3);
+    }
+}
+
+
+kernel void ge_pow3o2 (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                       const device REAL* a [[buffer(2)]],
+                       const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                       device REAL* b [[buffer(5)]],
+                       const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                       uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = pow(a[offset_a + gid_0 + gid_1 * ld_a], REAL3o2);
+    }
+}
+
+
+kernel void ge_pow (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                    const device REAL* a [[buffer(2)]],
+                    const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                    const device REAL* b [[buffer(5)]],
+                    const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                    device REAL* c [[buffer(8)]],
+                    const int offset_c [[constant(9)]], const int ld_c [[constant(10)]],
+                    uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] = pow(a[offset_a + gid_0 + gid_1 * ld_a],
+                                                 b[offset_b + gid_0 + gid_1 * ld_b]);
+    }
+}
+
+
+kernel void ge_powx (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                     const device REAL* a [[buffer(2)]],
+                     const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                     const REAL b [[constant(5)]],
+                     device REAL* c [[buffer(6)]],
+                     const int offset_c [[constant(7)]], const int ld_c [[constant(8)]],
+                     uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] = pow(a[offset_a + gid_0 + gid_1 * ld_a], b);
+    }
+}
+
+
+kernel void ge_hypot (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                      const device REAL* a [[buffer(2)]],
+                      const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                      const device REAL* b [[buffer(5)]],
+                      const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                      device REAL* c [[buffer(8)]],
+                      const int offset_c [[constant(9)]], const int ld_c [[constant(10)]],
+                      uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] = hypot(a[offset_a + gid_0 + gid_1 * ld_a],
+                                                   b[offset_b + gid_0 + gid_1 * ld_b]);
+    }
+}
+
+
+kernel void ge_exp (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                    const device REAL* a [[buffer(2)]],
+                    const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                    device REAL* b [[buffer(5)]],
+                    const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                    uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = exp(a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
+
+
+kernel void ge_exp2 (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                     const device REAL* a [[buffer(2)]],
+                     const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                     device REAL* b [[buffer(5)]],
+                     const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                     uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = exp2(a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
+
+
+kernel void ge_exp10 (const uint sd [[constant(0)]], const uint fd [[constant(1)]],
+                      const device REAL* a [[buffer(2)]],
+                      const int offset_a [[constant(3)]], const int ld_a [[constant(4)]],
+                      device REAL* b [[buffer(5)]],
+                      const int offset_b [[constant(6)]], const int ld_b [[constant(7)]],
+                      uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        b[offset_b + gid_0 + gid_1 * ld_b] = pow((REAL)10.0, a[offset_a + gid_0 + gid_1 * ld_a]);
+    }
+}
 
 //     __global__ void ge_exp10 (const int sd, const int fd,
 //                               const REAL* a, const int offset_a, const int ld_a,
