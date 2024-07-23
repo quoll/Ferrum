@@ -2,7 +2,6 @@
 #define MTL_PRIVATE_IMPLEMENTATION
 
 #include <iostream>
-#include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
 #include <MetalKit/MetalKit.hpp>
 
