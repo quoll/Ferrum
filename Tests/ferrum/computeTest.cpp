@@ -105,6 +105,19 @@ int main(void) {
   }
   std::cout << "]" << std::endl;
 
+  bool success = true;
+  for (int i = 0; i < arrayLength; i++) {
+    if (result[i] != a[i] + b[i]) {
+      success = false;
+      break;
+    }
+  }
+  if (success) {
+    std::cout << "Success!" << std::endl;
+  } else {
+    std::cout << "Failed!" << std::endl;
+  }
+
   resultBuffer->release();
   bufferB->release();
   bufferA->release();
@@ -113,6 +126,6 @@ int main(void) {
   library->release();
   commandQueue->release();
   device->release();
-  return 0;
+  return success ? 0 : 1;
 }
 

@@ -1,9 +1,9 @@
-package numbertest;
+package ferrum;
 
-public class NumberTest {
+public class ComputeTest {
 
     static {
-        System.loadLibrary("numbertest");
+        System.loadLibrary("ferrum");
     }
 
     public static String toString(float[] x) {
@@ -20,7 +20,7 @@ public class NumberTest {
     public static void main(String[] args) {
         float[] a = new float[] {1.0f, 2.0f, 3.0f, 4.0f};
         float[] b = new float[] {5.0f, 6.0f, 7.0f, 8.0f};
-        NumberTest op = new NumberTest();
+        ComputeTest op = new ComputeTest();
         float[] c = op.add(a, b);
         System.out.println("Sum of a and b is: " + toString(c));
     }
