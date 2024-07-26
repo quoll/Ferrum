@@ -1,7 +1,9 @@
 #define NS_PRIVATE_IMPLEMENTATION
 #define MTL_PRIVATE_IMPLEMENTATION
 
+// include the std namespace so we can use the std::cout and std::getenv
 #include <iostream>
+
 #include <Metal/Metal.hpp>
 #include <MetalKit/MetalKit.hpp>
 #include <simd/simd.h>
@@ -80,43 +82,10 @@ const NS::String* getLibPath(const char* path) {
   return nullptr;
 }
 
-
-int init(const char* path) {
-  NS::Array* devices = MTL::CopyAllDevices();
-  int length = devices != nullptr ? devices->count() : 0;
-  if (length == 0) {
-    std::cerr << "Metal is not supported on this device" << std::endl;
-    return -1;
-  }
-  MTL::Device* device = devices->object<MTL::Device>(0);
-  std::cout << "Running on device: " << device->name()->utf8String() << std::endl;
-
-  MTL::CommandQueue* commandQueue = device->newCommandQueue();
-
-  NS::String* libPath = getLibPath(path);
-  if (libPath == nullptr) {
-    std::cerr << "Error: Failed to find library" << std::endl;
-    return -2;
-  }
-  NS::URL* url = NS::URL::fileURLWithPath(libPath);
-  if (url == nullptr) {
-    std::cerr << "Error: Failed to create URL for: " << str(libPath) << std::endl;
-    return -3;
-  }
-
-  NS::Error* pError = nullptr;
-  MTL::Library* library = device->newLibrary(url, &pError);
-
-  if (pError != nullptr) {
-    std::cerr << "Error: " << str(pError->localizedDescription()) << std::endl;
-    return -4;
-  } else if (library == nullptr) {
-    std::cerr << "Error: Failed to create library from: " << url->fileSystemRepresentation() << std::endl;
-    return -5;
-  } 
-
-  std::cout << "Successfully loaded library: " << str(libPath) << std::endl;
-
+int main(void) {
+  std::cout << "FERRUM_LIB=" << str(getEnv("FERRUM_LIB")) << std::endl;
+  std::cout << "path(null)=" << str(getLibPath(nullptr)) << std::endl;
+  std::cout << "path(\"./lib\")=" << str(getLibPath("./lib")) << std::endl;
   return 0;
 }
 
