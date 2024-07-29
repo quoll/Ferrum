@@ -1,21 +1,30 @@
 package ferrum;
 
-public class FerrumEngine {
+public class FerrumEngine implements AutoCloseable {
 
     static {
         System.loadLibrary("ferrum");
     }
 
-    public static String toString(float[] x) {
-      String s = "[";
-      for (int i = 0; i < x.length; i++) {
-        s += x[i];
-        if (i < x.length - 1) {
-          s += ", ";
-        }
-      }
-      return s + "]";
+    private static long engineHandle;
+
+    public FerrumEngine() {
+      this(null);
     }
+
+    public FerrumEngine(String path) {
+      engineHandle = init(path);
+    }
+
+    private static native long init(String path);
+
+    public void close() {
+      close(engineHandle);
+    }
+
+    private static native void close(long engineHandle);
+
+    // implement operations
 
     public native float[] add_vect(float[] a, float[] b);
 

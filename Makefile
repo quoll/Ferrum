@@ -18,7 +18,7 @@ JAVA_SRC = $(SRC_DIR)/ferrum/FerrumEngine.java
 JAVA_CLASS = $(CLASS_DIR)/ferrum/FerrumEngine.class
 
 # C++ source and object files
-CPP_JAVA_SRC = $(SRC_DIR)/native/ferrum.cpp
+CPP_JAVA_SRC = $(SRC_DIR)/ferrum/ferrum.cpp
 CPP_JAVA_OBJ = $(OBJ_DIR)/ferrum_FerrumEngine.o
 
 # Metal source and object files

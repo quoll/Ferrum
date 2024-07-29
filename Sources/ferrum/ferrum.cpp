@@ -1,7 +1,9 @@
 #include <jni.h>
 #include "ferrum_FerrumEngine.h"
 
-JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_add (JNIEnv *env, jobject nt, jfloatArray a, jfloatArray b) {
+#include "engine.hpp"
+
+extern "C" JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_add (JNIEnv *env, jobject nt, jfloatArray a, jfloatArray b) {
   int lena = env->GetArrayLength(a);
   int lenb = env->GetArrayLength(b);
   int len = lena < lenb ? lena : lenb;
