@@ -1,3 +1,5 @@
+// Note: Only this file may declare the following two macros
+
 #define NS_PRIVATE_IMPLEMENTATION
 #define MTL_PRIVATE_IMPLEMENTATION
 
@@ -8,8 +10,7 @@
 #include <MetalKit/MetalKit.hpp>
 #include <simd/simd.h>
 
-#include "metal-compute.hpp"
-#include "FoundationEx.hpp"
+#include "engine.hpp"
 
 const char* LIB_NAME = "libferrum";
 const char* LIB_TYPE = "metallib";
@@ -22,14 +23,14 @@ MTL::Library* initLibrary(MTL::Device* device, const char* path);
 
 // constructor for Ferrum::MetalEngine
 Ferrum::MetalEngine::MetalEngine(const char* path) {
-  this.device = getDevice();
-  this.library = initLibrary(device, path);
-  if (this.library == nullptr) {
+  device = getDevice();
+  library = initLibrary(device, path);
+  if (library == nullptr) {
     std::cerr << "Error: Failed to initialize Metal library" << std::endl;
     return;
   }
 
-  this.commandQueue = device->newCommandQueue();
+  commandQueue = device->newCommandQueue();
 
   NS::Array* functions = library->functionNames();
   int fnCount = functions->count();
@@ -37,36 +38,37 @@ Ferrum::MetalEngine::MetalEngine(const char* path) {
     std::cerr << "Error: No functions found in library" << std::endl;
     return;
   }
-  this.kernelFunctions = new MTL::Function*[fnCount];
-  this.pipelineStates = new MTL::ComputePipelineState*[fnCount];
+  kernelFunctions = new MTL::Function*[fnCount];
+  computePipelineStates = new std::unordered_map<std::string, MTL::ComputePipelineState*>();
   NS::Error* pError = nullptr;
   for (int i = 0; i < fnCount; i++) {
-    NS::String* fnName = static_cast<NS::String*>(functions->object(i))
-    this.kernelFunctions[i] = library->newFunction(fnName);
-    if (this.kernelFunctions[i] == nullptr) {
+    NS::String* fnName = static_cast<NS::String*>(functions->object(i));
+    kernelFunctions[i] = library->newFunction(fnName);
+    if (kernelFunctions[i] == nullptr) {
       std::cerr << "Error: Failed to create function: " << str(fnName) << std::endl;
     }
-    MTL::ComputePipelineState* pipelineState = device->newComputePipelineState(kernelFunction[i], &pError);
+    MTL::ComputePipelineState* pipelineState = device->newComputePipelineState(kernelFunctions[i], &pError);
     if (pError != nullptr) {
       std::cerr << "Error: on function '" << str(fnName) << "': " << str(pError->localizedDescription()) << std::endl;
     } else if (pipelineState == nullptr) {
       std::cerr << "Error: Failed to create pipeline state for: " << str(fnName) << std::endl;
     }
+    (*computePipelineStates)[str(fnName)] = pipelineState;
   }
 }
 
 
 Ferrum::MetalEngine::~MetalEngine() {
-  if (pipelineState != nullptr) {
+  if (computePipelineStates != nullptr) {
     for (int i = 0; i < library->functionCount(); i++) {
-      if (pipelineStates[i] != nullptr) {
-        pipelineStates[i]->release();
+      if (computePipelineStates[i] != nullptr) {
+        computePipelineStates[i]->release();
       }
       if (kernelFunctions[i] != nullptr) {
         kernelFunctions[i]->release();
       }
     }
-    delete[] pipelineStates;
+    delete[] computePipelineStates;
     delete[] kernelFunctions;
   }
   if (commandQueue != nullptr) {
@@ -160,15 +162,15 @@ MTL::Device* getDevice() {
 
 MTL::Library* initLibrary(MTL::Device* device, const char* path) {
 
-  NS::String* libPath = getLibPath(path);
+  const NS::String* libPath = getLibPath(path);
   if (libPath == nullptr) {
     std::cerr << "Error: Failed to find library" << std::endl;
-    return -2;
+    return nullptr;
   }
   NS::URL* url = NS::URL::fileURLWithPath(libPath);
   if (url == nullptr) {
     std::cerr << "Error: Failed to create URL for: " << str(libPath) << std::endl;
-    return -3;
+    return nullptr;
   }
 
   NS::Error* pError = nullptr;
@@ -176,14 +178,52 @@ MTL::Library* initLibrary(MTL::Device* device, const char* path) {
 
   if (pError != nullptr) {
     std::cerr << "Error: " << str(pError->localizedDescription()) << std::endl;
-    return -4;
+    return nullptr;
   } else if (library == nullptr) {
     std::cerr << "Error: Failed to create library from: " << url->fileSystemRepresentation() << std::endl;
-    return -5;
+    return nullptr;
   } 
 
   // std::cout << "Successfully loaded library: " << str(libPath) << std::endl;
 
   return library;
+}
+
+// implementations
+
+void Ferrum::MetalEngine::vect_add(const float* a, int lena, const float* b, int lenb, float* c, int lenc) {
+  MTL::ComputePipelineState* pipelineState = (*computePipelineStates)["vect_add"];
+  if (pipelineState == nullptr) {
+    std::cerr << "Error: Failed to find pipeline state for 'vect_add'" << std::endl;
+    return;
+  }
+  assert(lenc <= lena && lenc <= lenb);
+  
+  MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lenc, MTL::StorageModeShared);
+  MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lenc, MTL::StorageModeShared);
+  MTL::Buffer* bufferC = device->newBuffer(c, sizeof(float) * lenc, MTL::StorageModeShared);
+
+  if (bufferA == nullptr || bufferB == nullptr || bufferC == nullptr) {
+    std::cerr << "Error: Failed to create buffers" << std::endl;
+    return;
+  }
+
+  MTL::CommandBuffer* commandBuffer = commandQueue->commandBuffer();
+  if (commandBuffer == nullptr) {
+    std::cerr << "Error: Failed to create command buffer" << std::endl;
+    return;
+  }
+
+  MTL::ComputeCommandEncoder* encoder = commandBuffer->computeCommandEncoder();
+  if (encoder == nullptr) {
+    std::cerr << "Error: Failed to create command encoder" << std::endl;
+    return;
+  }
+
+  encoder->setComputePipelineState(pipelineState);
+  encoder->setBuffer(bufferA, 0, 0);
+  encoder->setBuffer(bufferB, 0, 1);
+  encoder->setBuffer(bufferC, 0, 2);
+
 }
 

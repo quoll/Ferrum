@@ -259,6 +259,22 @@ kernel void vector_div (const device REAL* x, constant uint& offset_x, constant 
 }
 
 
+kernel void vector_add (const device REAL* x, constant uint& offset_x, constant uint& stride_x,
+                        const device REAL* y, constant uint& offset_y, constant uint& stride_y,
+                        device REAL* z, constant uint& offset_z, constant uint& stride_z,
+                        uint id [[thread_position_in_grid]]) {
+    z[offset_z + id * stride_z] = x[offset_x + id * stride_x] + y[offset_y + id * stride_y];
+}
+
+
+kernel void vector_sub (const device REAL* x, constant uint& offset_x, constant uint& stride_x,
+                        const device REAL* y, constant uint& offset_y, constant uint& stride_y,
+                        device REAL* z, constant uint& offset_z, constant uint& stride_z,
+                        uint id [[thread_position_in_grid]]) {
+    z[offset_z + id * stride_z] = x[offset_x + id * stride_x] - y[offset_y + id * stride_y];
+}
+
+
 kernel void vector_inv (const device REAL* x, constant uint& offset_x, constant uint& stride_x,
                         device REAL* y, constant uint& offset_y, constant uint& stride_y,
                         uint id [[thread_position_in_grid]]) {
@@ -746,6 +762,40 @@ kernel void ge_div (constant int& sd [[buffer(0)]], constant int& fd [[buffer(1)
     if (gid_0 < sd && gid_1 < fd) {
         c[offset_c + gid_0 + gid_1 * ld_c] =
             a[offset_a + gid_0 + gid_1 * ld_a] / b[offset_b + gid_0 + gid_1 * ld_b];
+    }
+}
+
+
+kernel void ge_add (constant int& sd [[buffer(0)]], constant int& fd [[buffer(1)]],
+                    const device REAL* a [[buffer(2)]],
+                    constant int& offset_a [[buffer(3)]], constant int& ld_a [[buffer(4)]],
+                    const device REAL* b [[buffer(5)]],
+                    constant int& offset_b [[buffer(6)]], constant int& ld_b [[buffer(7)]],
+                    device REAL* c [[buffer(8)]],
+                    constant int& offset_c [[buffer(9)]], constant int& ld_c [[buffer(10)]],
+                    uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] =
+            a[offset_a + gid_0 + gid_1 * ld_a] + b[offset_b + gid_0 + gid_1 * ld_b];
+    }
+}
+
+
+kernel void ge_sub (constant int& sd [[buffer(0)]], constant int& fd [[buffer(1)]],
+                    const device REAL* a [[buffer(2)]],
+                    constant int& offset_a [[buffer(3)]], constant int& ld_a [[buffer(4)]],
+                    const device REAL* b [[buffer(5)]],
+                    constant int& offset_b [[buffer(6)]], constant int& ld_b [[buffer(7)]],
+                    device REAL* c [[buffer(8)]],
+                    constant int& offset_c [[buffer(9)]], constant int& ld_c [[buffer(10)]],
+                    uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < fd) {
+        c[offset_c + gid_0 + gid_1 * ld_c] =
+            a[offset_a + gid_0 + gid_1 * ld_a] - b[offset_b + gid_0 + gid_1 * ld_b];
     }
 }
 
@@ -1654,6 +1704,36 @@ kernel void uplo_div (constant int& sd [[buffer(0)]], constant int& unit [[buffe
     if (gid_0 < sd && gid_1 < sd) {
         if ((unit == 132) ? bottom * gid_0 > bottom * gid_1 : bottom * gid_0 >= bottom * gid_1) {
             c[offset_c + gid_0 + gid_1 * ld_c] = a[offset_a + gid_0 + gid_1 * ld_a] / b[offset_b + gid_0 + gid_1 * ld_b];
+        }
+    }
+}
+
+
+kernel void uplo_add (constant int& sd [[buffer(0)]], constant int& unit [[buffer(1)]], constant int& bottom [[buffer(2)]],
+                      const device REAL* a [[buffer(3)]], constant int& offset_a [[buffer(4)]], constant int& ld_a [[buffer(5)]],
+                      const device REAL* b [[buffer(6)]], constant int& offset_b [[buffer(7)]], constant int& ld_b [[buffer(8)]],
+                      device REAL* c [[buffer(9)]], constant int& offset_c [[buffer(10)]], constant int& ld_c [[buffer(11)]],
+                      uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < sd) {
+        if ((unit == 132) ? bottom * gid_0 > bottom * gid_1 : bottom * gid_0 >= bottom * gid_1) {
+            c[offset_c + gid_0 + gid_1 * ld_c] = a[offset_a + gid_0 + gid_1 * ld_a] + b[offset_b + gid_0 + gid_1 * ld_b];
+        }
+    }
+}
+
+
+kernel void uplo_sub (constant int& sd [[buffer(0)]], constant int& unit [[buffer(1)]], constant int& bottom [[buffer(2)]],
+                      const device REAL* a [[buffer(3)]], constant int& offset_a [[buffer(4)]], constant int& ld_a [[buffer(5)]],
+                      const device REAL* b [[buffer(6)]], constant int& offset_b [[buffer(7)]], constant int& ld_b [[buffer(8)]],
+                      device REAL* c [[buffer(9)]], constant int& offset_c [[buffer(10)]], constant int& ld_c [[buffer(11)]],
+                      uint2 id [[thread_position_in_grid]]) {
+    int gid_0 = id.x;
+    int gid_1 = id.y;
+    if (gid_0 < sd && gid_1 < sd) {
+        if ((unit == 132) ? bottom * gid_0 > bottom * gid_1 : bottom * gid_0 >= bottom * gid_1) {
+            c[offset_c + gid_0 + gid_1 * ld_c] = a[offset_a + gid_0 + gid_1 * ld_a] - b[offset_b + gid_0 + gid_1 * ld_b];
         }
     }
 }

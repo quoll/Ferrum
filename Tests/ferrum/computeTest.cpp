@@ -23,9 +23,9 @@ int main(void) {
   #include <metal_stdlib>
   using namespace metal;
 
-  kernel void add_arrays(const device float* inA,
-                         const device float* inB,
-                         device float* c,
+  kernel void add_arrays(const device float* inA, constant uint& offset_a, constant uint& stride_a,
+                         const device float* inB, constant uint& offset_b, constant uint& stride_b,
+                         device float* c, constant uint& offset_c, constant uint& stride_c,
                          uint id [[thread_position_in_grid]]) {
   c[id] = inA[id] + inB[id];
   })";
