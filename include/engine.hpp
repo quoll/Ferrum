@@ -24,6 +24,7 @@ namespace Ferrum {
       MTL::CommandQueue* commandQueue;
       MTL::Function** function;
       // for now, keep track of the function pipeline states in a map
+      int fnCount;
       MTL::Function** kernelFunctions;
       std::unordered_map<std::string, MTL::ComputePipelineState*>* computePipelineStates;
   };

@@ -2,15 +2,22 @@
 #include "ferrum_FerrumEngine.h"
 
 #include "engine.hpp"
+#include <iostream>
 
 static jfieldID engineFieldID;
 
 JNIEXPORT jlong JNICALL Java_ferrum_FerrumEngine_init(JNIEnv* env, jclass cls, jstring path) {
-  char* cpath = (char*)env->GetStringUTFChars(path, NULL);
+  std::cout << "Initializing engine" << std::endl << "Converting path from JVM to C++" << std::endl;
+  char* cpath;
+  cpath = path ? (char*)env->GetStringUTFChars(path, NULL) : NULL;
+  std::cout << "Converted" << std::endl << "Creating engine" << std::endl;
   Ferrum::MetalEngine* engine = new Ferrum::MetalEngine(cpath);
+  std::cout << "Got engine" << std::endl;
   env->ReleaseStringUTFChars(path, cpath);
   // This will stay valid while the engine class is loaded. There is no harm is setting it again.
+  std::cout << "Setting engine field" << std::endl;
   engineFieldID = env->GetFieldID(cls, "engine", "J");
+  std::cout << "returning engine handle" << std::endl;
   return reinterpret_cast<jlong>(engine);
 }
 

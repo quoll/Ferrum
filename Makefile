@@ -20,7 +20,7 @@ JAVA_CLASS = $(CLASS_DIR)/ferrum/FerrumEngine.class
 
 # C++ source and object files
 CPP_SRC = $(wildcard $(SRC_DIR)/ferrum/*.cpp)
-CPP_OBJ = $(patsubst $(SRC_DIR)/ferrym/*.cpp,$(OBJ_DIR)/%.o,$(CPP_SRC))
+CPP_OBJ = $(patsubst $(SRC_DIR)/ferrum/%.cpp,$(OBJ_DIR)/%.o,$(CPP_SRC))
 
 # Metal source and object files
 MTL_SRC = $(wildcard $(MTL_DIR)/ferrum/*.metal)
@@ -35,7 +35,7 @@ MTL_LIB = $(LIB_DIR)/ferrum.metallib
 
 # Test programs
 TEST_SRC_FILES = $(wildcard $(TEST_DIR)/ferrum/*.cpp)
-TEST_PROG = $(TEST_SRC_FILES:.cpp=)
+TEST_PROG = $(patsubst $(TEST_DIR)/ferrum/%.cpp,$(TEST_DIR)/ferrum/%,$(TEST_SRC_FILES))
 JAVA_TEST_FILES = $(wildcard $(TEST_DIR)/ferrum/*.java)
 JAVA_TEST_CLASS = $(patsubst $(TEST_DIR)/ferrum/%.java,$(CLASS_DIR)/ferrum/%.class,$(JAVA_TEST_FILES))
 
@@ -50,37 +50,40 @@ FRAMEWORKS = -framework Foundation -framework Metal
 all: $(MTL_LIB) $(JAVA_CLASS) $(JAVA_TEST_CLASS) $(DYLIB) $(TEST_PROG)
 
 # Compile Java class
-$(JAVA_CLASS): $(JAVA_SRC)
-	@mkdir -p $(CLASS_DIR)
+$(JAVA_CLASS): $(JAVA_SRC) | $(CLASS_DIR) $(INCLUDE_DIR)
 	$(JAVAC) -cp $(SRC_DIR) -sourcepath $(SRC_DIR) -d $(CLASS_DIR) -h $(INCLUDE_DIR) $<
 
-# Compile C++ implementations
-$(CPP_JAVA_OBJ): $(CPP_JAVA_SRC) $(CPP_MTL_SRC)
+$(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
+
+$(LIB_DIR):
+	@mkdir -p $(LIB_DIR)
+
+$(CLASS_DIR):
+	@mkdir -p $(CLASS_DIR)
+
+# Compile C++ implementations
+$(OBJ_DIR)/%.o: $(SRC_DIR)/ferrum/%.cpp | $(OBJ_DIR)
 	$(GCC) $(CFLAGS) $(JAVA_INCLUDES) $(CPP_INCLUDES) $(CPP_FLAGS) -o $@ $<
 
 # Link dynamic library
-$(DYLIB): $(CPP_JAVA_OBJ)
-	@mkdir -p $(LIB_DIR)
-	$(GXX) -dynamiclib -o $@ $< -lc
+$(DYLIB): $(CPP_OBJ) | $(LIB_DIR)
+	$(GXX) -dynamiclib -o $@ $^ -lc $(FRAMEWORKS)
 
 # Compile Metal shaders
-$(OBJ_DIR)/%.ir: $(MTL_DIR)/ferrum/%.metal
-	@mkdir -p $(OBJ_DIR)
+$(OBJ_DIR)/%.ir: $(MTL_DIR)/ferrum/%.metal | $(OBJ_DIR)
 	metal -o $@ -c $<
 
 # Link Metal library
-$(MTL_LIB): $(MTL_OBJ)
-	@mkdir -p $(LIB_DIR)
+$(MTL_LIB): $(MTL_OBJ) | $(LIB_DIR)
 	metallib -o $(MTL_LIB) $(MTL_OBJ)
 
 # Build c++ test program
-$(TEST_DIR)/ferrum/%: $(TEST_DIR)/ferrum/%.cpp
+$(TEST_DIR)/ferrum/%: $(TEST_DIR)/ferrum/%.cpp | $(OBJ_DIR)
 	$(GXX) $(CPP_INCLUDES) $(CPP_FLAGS) $< -o $@ $(FRAMEWORKS)
 
 # Build java test program
-$(CLASS_DIR)/ferrum/%.class: $(TEST_DIR)/ferrum/%.java | $(CLASS_DIR)/ferrum
-	@mkdir -p $(CLASS_DIR)
+$(CLASS_DIR)/ferrum/%.class: $(TEST_DIR)/ferrum/%.java | $(CLASS_DIR)
 	$(JAVAC) -cp $(CLASS_DIR) -sourcepath $(TEST_DIR) -d $(CLASS_DIR) $<
 
 # Clean target

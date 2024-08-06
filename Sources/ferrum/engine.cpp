@@ -23,21 +23,26 @@ MTL::Library* initLibrary(MTL::Device* device, const char* path);
 
 // constructor for Ferrum::MetalEngine
 Ferrum::MetalEngine::MetalEngine(const char* path) {
+  std::cout << "Getting Metal device" << std::endl;
   device = getDevice();
+  std::cout << "Initializing library..." << std::endl;
   library = initLibrary(device, path);
   if (library == nullptr) {
     std::cerr << "Error: Failed to initialize Metal library" << std::endl;
     return;
   }
+  std::cout << "Initialized" << std::endl << "Creating command queue..." << std::endl;
 
   commandQueue = device->newCommandQueue();
 
+  std::cout << "Created" << std::endl << "Retrieving function names..." << std::endl;
   NS::Array* functions = library->functionNames();
-  int fnCount = functions->count();
+  fnCount = functions->count();
   if (fnCount == 0) {
     std::cerr << "Error: No functions found in library" << std::endl;
     return;
   }
+  std::cout << "Retrieved " << fnCount << " functions" << std::endl << "Collecting function pipline states..." << std::endl;
   kernelFunctions = new MTL::Function*[fnCount];
   computePipelineStates = new std::unordered_map<std::string, MTL::ComputePipelineState*>();
   NS::Error* pError = nullptr;
@@ -55,18 +60,21 @@ Ferrum::MetalEngine::MetalEngine(const char* path) {
     }
     (*computePipelineStates)[str(fnName)] = pipelineState;
   }
+  std::cout << "Initialization complete" << std::endl;
 }
 
 
 Ferrum::MetalEngine::~MetalEngine() {
   if (computePipelineStates != nullptr) {
-    for (int i = 0; i < library->functionCount(); i++) {
-      if (computePipelineStates[i] != nullptr) {
-        computePipelineStates[i]->release();
+    int i = 0;
+    for (auto& pair : *computePipelineStates) {
+      if (pair.second != nullptr) {
+        pair.second->release();
       }
       if (kernelFunctions[i] != nullptr) {
         kernelFunctions[i]->release();
       }
+      i++;
     }
     delete[] computePipelineStates;
     delete[] kernelFunctions;
