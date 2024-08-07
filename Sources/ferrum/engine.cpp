@@ -369,11 +369,45 @@ float* Ferrum::MetalEngine::vect_bB(Ferrum::FunctionID id, const float* a, int l
 
 float* Ferrum::MetalEngine::vect_bfB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      float sa,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBuffer(buffers[0], 0, 0);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 1);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 2);
+        encoder->setBytes(&sa, sizeof(sa), 3);
+        encoder->setBuffer(buffers[1], 0, 4);
+        encoder->setBytes(&offset, sizeof(offset), 5);
+        encoder->setBytes(&stride, sizeof(stride), 6);
+      },
+      emptyAction);
+}
 
 float* Ferrum::MetalEngine::vect_fbB(Ferrum::FunctionID id, float sa,
                                      const float* a, int lena, int offset_a, int stride_a,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sa, sizeof(sa), 0);
+        encoder->setBuffer(buffers[0], 0, 1);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 2);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 3);
+        encoder->setBuffer(buffers[1], 0, 4);
+        encoder->setBytes(&offset, sizeof(offset), 5);
+        encoder->setBytes(&stride, sizeof(stride), 6);
+      },
+      emptyAction);
+}
 
 float* Ferrum::MetalEngine::vect_bbB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      const float* b, int lenb, int offset_b, int stride_b,
@@ -401,75 +435,468 @@ float* Ferrum::MetalEngine::vect_bbB(Ferrum::FunctionID id, const float* a, int 
 
 float* Ferrum::MetalEngine::vect_bBB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      float* b, int lenb, int offset_b, int stride_b,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBuffer(buffers[0], 0, 0);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 1);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 2);
+        encoder->setBuffer(buffers[1], 0, 3);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 4);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 5);
+        encoder->setBuffer(buffers[2], 0, 6);
+        encoder->setBytes(&offset, sizeof(offset), 7);
+        encoder->setBytes(&stride, sizeof(stride), 8);
+      },
+      [&](std::vector<MTL::Buffer*>& buffers, int len) {
+        float* b_result = reinterpret_cast<float*>(buffers[1]->contents());
+        memcpy(b, b_result, sizeof(float) * len);
+      });
+}
 
 float* Ferrum::MetalEngine::vect_bffffB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                         float sa, float sha,
                                         float sb, float shb,
-                                        float* result, int len, int offset, int stride) { return nullptr; }
+                                        float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBuffer(buffers[0], 0, 0);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 1);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 2);
+        encoder->setBytes(&sa, sizeof(sa), 3);
+        encoder->setBytes(&sha, sizeof(sha), 4);
+        encoder->setBytes(&sb, sizeof(sb), 5);
+        encoder->setBytes(&shb, sizeof(shb), 6);
+        encoder->setBuffer(buffers[1], 0, 7);
+        encoder->setBytes(&offset, sizeof(offset), 8);
+        encoder->setBytes(&stride, sizeof(stride), 9);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::vect_bbffffB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                          const float* b, int lenb, int offset_b, int stride_b,
                                          float sa, float sha,
                                          float sb, float shb,
-                                         float* result, int len, int offset, int stride) { return nullptr; }
+                                         float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBuffer(buffers[0], 0, 0);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 1);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 2);
+        encoder->setBuffer(buffers[1], 0, 3);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 4);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 5);
+        encoder->setBytes(&sa, sizeof(sa), 6);
+        encoder->setBytes(&sha, sizeof(sha), 7);
+        encoder->setBytes(&sb, sizeof(sb), 8);
+        encoder->setBytes(&shb, sizeof(shb), 9);
+        encoder->setBuffer(buffers[2], 0, 10);
+        encoder->setBytes(&offset, sizeof(offset), 11);
+        encoder->setBytes(&stride, sizeof(stride), 12);
+      },
+      emptyAction);
+}
+
 // general matrix functions
 float* Ferrum::MetalEngine::ge_bB(Ferrum::FunctionID id, int sd, int fd,
                                   const float* a, int lena, int offset_a, int stride_a,
-                                  float* result, int len, int offset, int stride) { return nullptr; }
+                                  float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&fd, sizeof(fd), 1);
+        encoder->setBuffer(buffers[0], 0, 2);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 3);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 4);
+        encoder->setBuffer(buffers[1], 0, 5);
+        encoder->setBytes(&offset, sizeof(offset), 6);
+        encoder->setBytes(&stride, sizeof(stride), 7);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::ge_bfB(Ferrum::FunctionID id, int sd, int fd,
                                    const float* a, int lena, int offset_a, int stride_a,
                                    float sa,
-                                   float* result, int len, int offset, int stride) { return nullptr; }
+                                   float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&fd, sizeof(fd), 1);
+        encoder->setBuffer(buffers[0], 0, 2);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 3);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 4);
+        encoder->setBytes(&sa, sizeof(sa), 5);
+        encoder->setBuffer(buffers[1], 0, 6);
+        encoder->setBytes(&offset, sizeof(offset), 7);
+        encoder->setBytes(&stride, sizeof(stride), 8);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::ge_fbB(Ferrum::FunctionID id, int sd, int fd, float sa,
                                    const float* a, int lena, int offset_a, int stride_a,
-                                   float* result, int len, int offset, int stride) { return nullptr; }
+                                   float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&fd, sizeof(fd), 1);
+        encoder->setBytes(&sa, sizeof(sa), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBuffer(buffers[1], 0, 6);
+        encoder->setBytes(&offset, sizeof(offset), 7);
+        encoder->setBytes(&stride, sizeof(stride), 8);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::ge_bbB(Ferrum::FunctionID id, int sd, int fd,
                                    const float* a, int lena, int offset_a, int stride_a,
                                    const float* b, int lenb, int offset_b, int stride_b,
-                                   float* result, int len, int offset, int stride) { return nullptr; }
+                                   float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&fd, sizeof(fd), 1);
+        encoder->setBuffer(buffers[0], 0, 2);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 3);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 4);
+        encoder->setBuffer(buffers[1], 0, 5);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 6);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 7);
+        encoder->setBuffer(buffers[2], 0, 8);
+        encoder->setBytes(&offset, sizeof(offset), 9);
+        encoder->setBytes(&stride, sizeof(stride), 10);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::ge_bBB(Ferrum::FunctionID id, int sd, int fd,
                                    const float* a, int lena, int offset_a, int stride_a,
                                    float* b, int lenb, int offset_b, int stride_b,
-                                   float* result, int len, int offset, int stride) { return nullptr; }
+                                   float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&fd, sizeof(fd), 1);
+        encoder->setBuffer(buffers[0], 0, 2);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 3);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 4);
+        encoder->setBuffer(buffers[1], 0, 5);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 6);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 7);
+        encoder->setBuffer(buffers[2], 0, 8);
+        encoder->setBytes(&offset, sizeof(offset), 9);
+        encoder->setBytes(&stride, sizeof(stride), 10);
+      },
+      [&](std::vector<MTL::Buffer*>& buffers, int len) {
+        float* b_result = reinterpret_cast<float*>(buffers[1]->contents());
+        memcpy(b, b_result, sizeof(float) * len);
+      });
+}
+
 float* Ferrum::MetalEngine::ge_bffffB(Ferrum::FunctionID id, int sd, int fd,
                                       const float* a, int lena, int offset_a, int stride_a,
                                       float sa, float sha,
                                       float sb, float shb,
-                                      float* result, int len, int offset, int stride) { return nullptr; }
+                                      float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&fd, sizeof(fd), 1);
+        encoder->setBuffer(buffers[0], 0, 2);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 3);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 4);
+        encoder->setBytes(&sa, sizeof(sa), 5);
+        encoder->setBytes(&sha, sizeof(sha), 6);
+        encoder->setBytes(&sb, sizeof(sb), 7);
+        encoder->setBytes(&shb, sizeof(shb), 8);
+        encoder->setBuffer(buffers[1], 0, 9);
+        encoder->setBytes(&offset, sizeof(offset), 10);
+        encoder->setBytes(&stride, sizeof(stride), 11);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::ge_bbffffB(Ferrum::FunctionID id, int sd, int fd,
                                        const float* a, int lena, int offset_a, int stride_a,
                                        const float* b, int lenb, int offset_b, int stride_b,
                                        float sa, float sha,
                                        float sb, float shb,
-                                       float* result, int len, int offset, int stride) { return nullptr; }
+                                       float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&fd, sizeof(fd), 1);
+        encoder->setBuffer(buffers[0], 0, 2);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 3);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 4);
+        encoder->setBuffer(buffers[1], 0, 5);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 6);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 7);
+        encoder->setBytes(&sa, sizeof(sa), 8);
+        encoder->setBytes(&sha, sizeof(sha), 9);
+        encoder->setBytes(&sb, sizeof(sb), 10);
+        encoder->setBytes(&shb, sizeof(shb), 11);
+        encoder->setBuffer(buffers[2], 0, 12);
+        encoder->setBytes(&offset, sizeof(offset), 13);
+        encoder->setBytes(&stride, sizeof(stride), 14);
+      },
+      emptyAction);
+}
+
 // general uplo functions
 float* Ferrum::MetalEngine::uplo_bB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                     const float* a, int lena, int offset_a, int stride_a,
-                                    float* result, int len, int offset, int stride) { return nullptr; }
+                                    float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&unit, sizeof(unit), 1);
+        encoder->setBytes(&bottom, sizeof(bottom), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBuffer(buffers[1], 0, 6);
+        encoder->setBytes(&offset, sizeof(offset), 7);
+        encoder->setBytes(&stride, sizeof(stride), 8);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::uplo_bfB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float sa,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::uplo_fbB(Ferrum::FunctionID id, int sd, int fd, float sa,
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&unit, sizeof(unit), 1);
+        encoder->setBytes(&bottom, sizeof(bottom), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBytes(&sa, sizeof(sa), 6);
+        encoder->setBuffer(buffers[1], 0, 7);
+        encoder->setBytes(&offset, sizeof(offset), 8);
+        encoder->setBytes(&stride, sizeof(stride), 9);
+      },
+      emptyAction);
+}
+
+float* Ferrum::MetalEngine::uplo_fbB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
+				     float sa,
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&unit, sizeof(unit), 1);
+        encoder->setBytes(&bottom, sizeof(bottom), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBytes(&sa, sizeof(sa), 6);
+        encoder->setBuffer(buffers[1], 0, 7);
+        encoder->setBytes(&offset, sizeof(offset), 8);
+        encoder->setBytes(&stride, sizeof(stride), 9);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::uplo_bbB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      const float* b, int lenb, int offset_b, int stride_b,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&unit, sizeof(unit), 1);
+        encoder->setBytes(&bottom, sizeof(bottom), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBuffer(buffers[1], 0, 6);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 7);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 8);
+        encoder->setBuffer(buffers[2], 0, 9);
+        encoder->setBytes(&offset, sizeof(offset), 10);
+        encoder->setBytes(&stride, sizeof(stride), 11);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::uplo_bBB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float* b, int lenb, int offset_b, int stride_b,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&unit, sizeof(unit), 1);
+        encoder->setBytes(&bottom, sizeof(bottom), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBuffer(buffers[1], 0, 6);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 7);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 8);
+        encoder->setBuffer(buffers[2], 0, 9);
+        encoder->setBytes(&offset, sizeof(offset), 10);
+        encoder->setBytes(&stride, sizeof(stride), 11);
+      },
+      [&](std::vector<MTL::Buffer*>& buffers, int len) {
+        float* b_result = reinterpret_cast<float*>(buffers[1]->contents());
+        memcpy(b, b_result, sizeof(float) * len);
+      });
+}
+
 float* Ferrum::MetalEngine::uplo_bffffB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                         const float* a, int lena, int offset_a, int stride_a,
                                         float sa, float sha,
                                         float sb, float shb,
-                                        float* result, int len, int offset, int stride) { return nullptr; }
+                                        float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&unit, sizeof(unit), 1);
+        encoder->setBytes(&bottom, sizeof(bottom), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBytes(&sa, sizeof(sa), 6);
+        encoder->setBytes(&sha, sizeof(sha), 7);
+        encoder->setBytes(&sb, sizeof(sb), 8);
+        encoder->setBytes(&shb, sizeof(shb), 9);
+        encoder->setBuffer(buffers[1], 0, 10);
+        encoder->setBytes(&offset, sizeof(offset), 11);
+        encoder->setBytes(&stride, sizeof(stride), 12);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::uplo_bbffffB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                          const float* a, int lena, int offset_a, int stride_a,
                                          const float* b, int lenb, int offset_b, int stride_b,
                                          float sa, float sha,
                                          float sb, float shb,
-                                         float* result, int len, int offset, int stride) { return nullptr; }
+                                         float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBytes(&sd, sizeof(sd), 0);
+        encoder->setBytes(&unit, sizeof(unit), 1);
+        encoder->setBytes(&bottom, sizeof(bottom), 2);
+        encoder->setBuffer(buffers[0], 0, 3);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 4);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 5);
+        encoder->setBuffer(buffers[1], 0, 6);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 7);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 8);
+        encoder->setBytes(&sa, sizeof(sa), 9);
+        encoder->setBytes(&sha, sizeof(sha), 10);
+        encoder->setBytes(&sb, sizeof(sb), 11);
+        encoder->setBytes(&shb, sizeof(shb), 12);
+        encoder->setBuffer(buffers[2], 0, 13);
+        encoder->setBytes(&offset, sizeof(offset), 14);
+        encoder->setBytes(&stride, sizeof(stride), 15);
+      },
+      emptyAction);
+}
+
 

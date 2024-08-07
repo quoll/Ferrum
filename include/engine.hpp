@@ -32,7 +32,11 @@ namespace Ferrum {
       ~MetalEngine();
 
       float* vect_add(const float* a, int lena, const float* b, int lenb, float* result, int len);
+      //
       // Dispatch functions
+      // f: float, b: buffer, B: in/out buffer
+      // Buffers are *always* followed by: length, offset, stride
+
       // general vector functions
       float* vect_bB(FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                     float* result, int len, int offset, int stride);
@@ -95,8 +99,9 @@ namespace Ferrum {
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float sa,
                                      float* result, int len, int offset, int stride);
-      float* uplo_fbB(FunctionID id, int sd, int fd, float sa,
+      float* uplo_fbB(FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
+                                     float sa,
                                      float* result, int len, int offset, int stride);
       float* uplo_bbB(FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
