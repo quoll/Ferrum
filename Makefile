@@ -46,6 +46,10 @@ CPP_INCLUDES = -Iapple-include -I"$(INCLUDE_DIR)"
 CPP_FLAGS = -std=c++11 -Wno-c++11-extensions -Wno-c++11-extra-semi -Wno-c++17-extensions
 FRAMEWORKS = -framework Foundation -framework Metal
 
+ifdef DEBUG
+CPP_FLAGS += -DDEBUG
+endif
+
 # Targets
 all: $(MTL_LIB) $(JAVA_CLASS) $(JAVA_TEST_CLASS) $(DYLIB) $(TEST_PROG)
 

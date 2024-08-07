@@ -581,8 +581,8 @@ kernel void vector_erfc_inv (const device REAL* x, constant uint& offset_x, cons
 
 
 kernel void vector_cdf_norm (const device REAL* x, constant uint& offset_x, constant uint& stride_x,
-                                    device REAL* y, constant uint& offset_y, constant uint& stride_y,
-                                    uint id [[thread_position_in_grid]]) {
+                             device REAL* y, constant uint& offset_y, constant uint& stride_y,
+                             uint id [[thread_position_in_grid]]) {
     y[offset_y + id * stride_y] = normcdf(x[offset_x + id * stride_x]);
 }
 
@@ -595,15 +595,15 @@ kernel void vector_cdf_norm_inv (const device REAL* x, constant uint& offset_x, 
 
 
 kernel void vector_gamma (const device REAL* x, constant uint& offset_x, constant uint& stride_x,
-                         device REAL* y, constant uint& offset_y, constant uint& stride_y,
-                         uint id [[thread_position_in_grid]]) {
+                          device REAL* y, constant uint& offset_y, constant uint& stride_y,
+                          uint id [[thread_position_in_grid]]) {
     y[offset_y + id * stride_y] = tgamma(x[offset_x + id * stride_x]);
 }
 
 
 kernel void vector_lgamma (const device REAL* x, constant uint& offset_x, constant uint& stride_x,
-                          device REAL* y, constant uint& offset_y, constant uint& stride_y,
-                          uint id [[thread_position_in_grid]]) {
+                           device REAL* y, constant uint& offset_y, constant uint& stride_y,
+                           uint id [[thread_position_in_grid]]) {
     y[offset_y + id * stride_y] = lgamma(x[offset_x + id * stride_x]);
 }
 

@@ -27,7 +27,7 @@ int main(void) {
                          const device float* inB, constant uint& offset_b, constant uint& stride_b,
                          device float* c, constant uint& offset_c, constant uint& stride_c,
                          uint id [[thread_position_in_grid]]) {
-  c[id] = inA[id] + inB[id];
+  c[offset_c + id * stride_c] = inA[offset_a + id * stride_a] + inB[offset_b + id * stride_b];
   })";
   NS::Error* pError = nullptr;
   MTL::Library* library = device->newLibrary(NS::String::string(shader, NS::UTF8StringEncoding), nullptr, &pError);
@@ -80,10 +80,18 @@ int main(void) {
     return 1;
   }
 
+  const uint offset = 0;
+  const uint stride = 1;
   computeEncoder->setComputePipelineState(pipelineState);
   computeEncoder->setBuffer(bufferA, 0, 0);
-  computeEncoder->setBuffer(bufferB, 0, 1);
-  computeEncoder->setBuffer(resultBuffer, 0, 2);
+  computeEncoder->setBytes(&offset, sizeof(offset), 1);
+  computeEncoder->setBytes(&stride, sizeof(stride), 2);
+  computeEncoder->setBuffer(bufferB, 0, 3);
+  computeEncoder->setBytes(&offset, sizeof(offset), 4);
+  computeEncoder->setBytes(&stride, sizeof(stride), 5);
+  computeEncoder->setBuffer(resultBuffer, 0, 6);
+  computeEncoder->setBytes(&offset, sizeof(offset), 7);
+  computeEncoder->setBytes(&stride, sizeof(stride), 8);
 
   MTL::Size gridSize = MTL::Size(1, 1, 1);
   MTL::Size threadGroupSize = MTL::Size(arrayLength, 1, 1);

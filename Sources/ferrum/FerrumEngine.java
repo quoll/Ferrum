@@ -6,7 +6,7 @@ public class FerrumEngine implements AutoCloseable {
         System.loadLibrary("ferrum");
     }
 
-    private static long engineHandle;
+    private long engineHandle;
 
     public FerrumEngine() {
       this(null);
