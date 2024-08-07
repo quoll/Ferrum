@@ -1,3 +1,6 @@
+// Self-contained C++ program to generate C++ source code enumerating
+// the function names from a Metal library
+
 #define NS_PRIVATE_IMPLEMENTATION
 #define MTL_PRIVATE_IMPLEMENTATION
 
@@ -10,6 +13,11 @@
 #include <simd/simd.h>
 
 #include "FoundationEx.hpp"
+
+const char* INCLUDE_DIR = "include";
+const char* SRC_DIR = "Sources/ferrum";
+const char* HEADER_FILE = "functions.hpp";
+const char* SRC_FILE = "functions.cpp";
 
 const char* LIB_NAME = "ferrum";
 const char* LIB_TYPE = "metallib";
@@ -128,20 +136,27 @@ void printCode(std::vector<std::string>& names, const char* header, const char* 
     return;
   }
 
+  headerFile << "// This file is auto-generated\n" << std::endl;
   headerFile << "#pragma once\n" << std::endl;
   headerFile << "#ifndef _FUNCTIONS_H" << std::endl;
   headerFile << "#define _FUNCTIONS_H\n" << std::endl;
-  headerFile << "enum Function {" << std::endl;
+  headerFile << "#include <string>" << std::endl;
+  headerFile << "#include <unordered_map>\n" << std::endl;
+  headerFile << "namespace Ferrum {\n" << std::endl;
+  headerFile << "  enum FunctionID {" << std::endl;
+  headerFile << "    UNKNOWN = -1," << std::endl;
   int index = 0;
   for (const std::string& fn : names) {
-    headerFile << "  " << fn << " = " << index;
+    headerFile << "    " << fn << " = " << index;
     if (++index < names.size()) {
       headerFile << ",";
     }
     headerFile << std::endl;
   }
-  headerFile << "};\n" << std::endl;
-  headerFile << "#endif _FUNCTIONS_H" << std::endl;
+  headerFile << "  };\n" << std::endl;
+  headerFile << "  extern std::unordered_map<std::string, FunctionID> functionMap;\n" << std::endl;
+  headerFile << "} // namespace Ferrum\n" << std::endl;
+  headerFile << "#endif // _FUNCTIONS_H\n" << std::endl;
   headerFile.close();
 
   std::ofstream sourceFile(cpp);
@@ -149,19 +164,48 @@ void printCode(std::vector<std::string>& names, const char* header, const char* 
     std::cerr << "Error: Failed to open file: " << cpp << std::endl;
     return;
   }
-  sourceFile << "#include \"" << header << "\"\n" << std::endl;
+  std::string headerName = std::string(header);
+  headerName = headerName.substr(headerName.find_last_of('/') + 1);
+  sourceFile << "// This file is auto-generated\n" << std::endl;
+  sourceFile << "#include \"" << headerName << "\"\n" << std::endl;
   sourceFile << "#include <unordered_map>\n" << std::endl;
-  sourceFile << "std::unordered_map<std::string, Function> functionMap;\n" << std::endl;
-  sourceFile << "__attribute__((constructor))" << std::endl;
-  sourceFile << "void initFunctionMap() {" << std::endl;
+  sourceFile << "namespace Ferrum {" << std::endl;
+  sourceFile << "  std::unordered_map<std::string, FunctionID> functionMap;\n}\n" << std::endl;
+  sourceFile << "__attribute__((constructor)) void initFunctionMap() {" << std::endl;
   for (const std::string& fn : names) {
-    sourceFile << "  functionMap[\"" << fn << "\"] = " << fn << ";" << std::endl;
+    sourceFile << "  Ferrum::functionMap[\"" << fn << "\"] = Ferrum::" << fn << ";" << std::endl;
   }
   sourceFile << "}\n" << std::endl;
   sourceFile.close();
 }
 
-int main(void) {
+int main(int argc, char** argv) {
+  std::string headerFile = std::string(INCLUDE_DIR) + "/" + HEADER_FILE;
+  std::string srcFile = std::string(SRC_DIR) + "/" + SRC_FILE;
+  
+  if (argc > 1) {
+    for (int i = 1; i < argc; i++) {
+      if (strcmp(argv[i], "-h") == 0) {
+        std::cout << "Usage: generateNames [-h] [-oh <header>] [-os <source>]" << std::endl;
+        return 0;
+      } else if (strcmp(argv[i], "-oh") == 0) {
+        if (i + 1 < argc) {
+          headerFile = argv[++i];
+        } else {
+          std::cerr << "Error: Missing argument for -oh" << std::endl;
+          return -1;
+        }
+      } else if (strcmp(argv[i], "-os") == 0) {
+        if (i + 1 < argc) {
+          srcFile = argv[++i];
+        } else {
+          std::cerr << "Error: Missing argument for -sh" << std::endl;
+          return -1;
+        }
+      }
+    }
+  }
+
   MTL::Library* library = loadLibrary(nullptr);
   if (library == nullptr) {
     std::cerr << "Error: Failed to load library" << std::endl;
@@ -181,7 +225,8 @@ int main(void) {
     names.push_back(name->utf8String());
   }
   std::sort(names.begin(), names.end());
-  printCode(names, "functions.hpp", "functions.cpp");
+  printCode(names, headerFile.c_str(), srcFile.c_str());
+  std::cout << "Generated code for " << length << " function names" << std::endl;
   return 0;
 }
 

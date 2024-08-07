@@ -46,7 +46,7 @@ Ferrum::MetalEngine::MetalEngine(const char* path) {
   DBG("Retrieved ", fnCount, " functions");
   DBG("Collecting function pipline states...");
   kernelFunctions = new MTL::Function*[fnCount];
-  computePipelineStates = new std::unordered_map<std::string, MTL::ComputePipelineState*>();
+  computePipelineStates = new MTL::ComputePipelineState*[fnCount];
   NS::Error* pError = nullptr;
   for (int i = 0; i < fnCount; i++) {
     NS::String* fnName = static_cast<NS::String*>(functions->object(i));
@@ -61,7 +61,13 @@ Ferrum::MetalEngine::MetalEngine(const char* path) {
       std::cerr << "Error: Failed to create pipeline state for: " << str(fnName) << std::endl;
     } else {
       DBG("Created pipeline state for: ", str(fnName));
-      (*computePipelineStates)[str(fnName)] = pipelineState;
+      auto idIt = functionMap.find(str(fnName));
+      if (idIt == functionMap.end()) {
+        std::cerr << "Error: Unknown function: " << str(fnName) << std::endl;
+      } else {
+        DBG("Saved pipeline state");
+        computePipelineStates[static_cast<int>(idIt->second)] = pipelineState;
+      }
     }
   }
   DBG("Initialization complete");
@@ -70,17 +76,15 @@ Ferrum::MetalEngine::MetalEngine(const char* path) {
 
 Ferrum::MetalEngine::~MetalEngine() {
   if (computePipelineStates != nullptr) {
-    int i = 0;
-    for (auto& pair : *computePipelineStates) {
-      if (pair.second != nullptr) {
-        pair.second->release();
+    for (int i = 0; i < fnCount; i++) {
+      if (computePipelineStates[i] != nullptr) {
+        computePipelineStates[i]->release();
       }
       if (kernelFunctions[i] != nullptr) {
         kernelFunctions[i]->release();
       }
-      i++;
     }
-    delete computePipelineStates;
+    delete[] computePipelineStates;
     delete[] kernelFunctions;
   }
   if (commandQueue != nullptr) {
@@ -227,7 +231,7 @@ MTL::Library* initLibrary(MTL::Device* device, const char* path) {
 // The general function forms follow
 
 float* Ferrum::MetalEngine::vect_add(const float* a, int lena, const float* b, int lenb, float* result, int len) {
-  MTL::ComputePipelineState* pipelineState = (*computePipelineStates)["vector_add"];
+  MTL::ComputePipelineState* pipelineState = computePipelineStates[Ferrum::FunctionID::vector_add];
   if (pipelineState == nullptr) {
     std::cerr << "Error: Failed to find pipeline state for 'vector_add'" << std::endl;
     return nullptr;
@@ -289,10 +293,11 @@ float* Ferrum::MetalEngine::vect_add(const float* a, int lena, const float* b, i
 }
 
 template<typename CreateBuffers, typename SetBuffers, typename CopyResults>
-float* call_metal(uint id,
-                  float* result, int len, int offset, int stride,
-                  CreateBuffers createBuffers, SetBuffers setBuffers, CopyResults copyResults) {
-  MTL::ComputePipelineState* pipelineState = (*computePipelineStates)[id];
+float* Ferrum::MetalEngine::call_metal(Ferrum::FunctionID id,
+                                       float* result, int len, int offset, int stride,
+                                       CreateBuffers createBuffers, SetBuffers setBuffers,
+                                       CopyResults copyResults) {
+  MTL::ComputePipelineState* pipelineState = computePipelineStates[static_cast<int>(id)];
   if (pipelineState == nullptr) {
     std::cerr << "Error: Failed to find pipeline state for '" << id << "'" << std::endl;
     return nullptr;
@@ -300,11 +305,7 @@ float* call_metal(uint id,
 
   auto buffers = createBuffers();
 
-  if (buffers == nullptr) {
-    std::cerr << "Error: Failed to create buffers" << std::endl;
-    return nullptr;
-  }
-  for (auto& buffer : *buffers) {
+  for (auto& buffer : buffers) {
     if (buffer == nullptr) {
       std::cerr << "Error: Failed to create buffer" << std::endl;
       return nullptr;
@@ -336,27 +337,26 @@ float* call_metal(uint id,
   commandBuffer->commit();
   commandBuffer->waitUntilCompleted();
 
-  float* bresult = reinterpret_cast<float*>(buffers->back()->contents());
+  float* bresult = reinterpret_cast<float*>(buffers.back()->contents());
   memcpy(result, bresult, sizeof(float) * len);
   // bring over more buffers if there is more than one result
   copyResults(buffers, len);
-  for (auto& buffer : *buffers) {
+  for (auto& buffer : buffers) {
     buffer->release();
   }
-  delete buffers;
   return result;
 }
 
 // general vector functions
-float* Ferrum::MetalEngine::vect_bB(uint id, const float* a, int lena, int offset_a, int stride_a,
+float* Ferrum::MetalEngine::vect_bB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                     float* result, int len, int offset, int stride) {
   return call_metal(id, result, len, offset, stride,
-      []() {
+      [&]() {
         MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
         MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
         return std::vector<MTL::Buffer*>{bufferA, bufferR};
       },
-      [](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
         encoder->setBuffer(buffers[0], 0, 0);
         encoder->setBytes(&offset_a, sizeof(offset_a), 1);
         encoder->setBytes(&stride_a, sizeof(stride_a), 2);
@@ -367,82 +367,82 @@ float* Ferrum::MetalEngine::vect_bB(uint id, const float* a, int lena, int offse
       [](std::vector<MTL::Buffer*>& buffers, int len) { });
 }
 
-float* Ferrum::MetalEngine::vect_bfB(uint id, const float* a, int lena, int offset_a, int stride_a,
+float* Ferrum::MetalEngine::vect_bfB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      float sa,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::vect_fbB(uint id, float sa,
+float* Ferrum::MetalEngine::vect_fbB(Ferrum::FunctionID id, float sa,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::vect_bbB(uint id, const float* a, int lena, int offset_a, int stride_a,
+float* Ferrum::MetalEngine::vect_bbB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      const float* b, int lenb, int offset_b, int stride_b,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::vect_bBB(uint id, const float* a, int lena, int offset_a, int stride_a,
+float* Ferrum::MetalEngine::vect_bBB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      float* b, int lenb, int offset_b, int stride_b,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::vect_bffffB(uint id, const float* a, int lena, int offset_a, int stride_a,
+float* Ferrum::MetalEngine::vect_bffffB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                         float sa, float sha,
                                         float sb, float shb,
                                         float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::vect_bbffffB(uint id, const float* a, int lena, int offset_a, int stride_a,
+float* Ferrum::MetalEngine::vect_bbffffB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                          const float* b, int lenb, int offset_b, int stride_b,
                                          float sa, float sha,
                                          float sb, float shb,
                                          float* result, int len, int offset, int stride) { return nullptr; }
 // general matrix functions
-float* Ferrum::MetalEngine::ge_bB(uint id, int sd, int fd,
+float* Ferrum::MetalEngine::ge_bB(Ferrum::FunctionID id, int sd, int fd,
                                   const float* a, int lena, int offset_a, int stride_a,
                                   float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::ge_bfB(uint id, int sd, int fd,
+float* Ferrum::MetalEngine::ge_bfB(Ferrum::FunctionID id, int sd, int fd,
                                    const float* a, int lena, int offset_a, int stride_a,
                                    float sa,
                                    float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::ge_fbB(uint id, int sd, int fd, float sa,
+float* Ferrum::MetalEngine::ge_fbB(Ferrum::FunctionID id, int sd, int fd, float sa,
                                    const float* a, int lena, int offset_a, int stride_a,
                                    float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::ge_bbB(uint id, int sd, int fd,
+float* Ferrum::MetalEngine::ge_bbB(Ferrum::FunctionID id, int sd, int fd,
                                    const float* a, int lena, int offset_a, int stride_a,
                                    const float* b, int lenb, int offset_b, int stride_b,
                                    float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::ge_bBB(uint id, int sd, int fd,
+float* Ferrum::MetalEngine::ge_bBB(Ferrum::FunctionID id, int sd, int fd,
                                    const float* a, int lena, int offset_a, int stride_a,
                                    float* b, int lenb, int offset_b, int stride_b,
                                    float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::ge_bffffB(uint id, int sd, int fd,
+float* Ferrum::MetalEngine::ge_bffffB(Ferrum::FunctionID id, int sd, int fd,
                                       const float* a, int lena, int offset_a, int stride_a,
                                       float sa, float sha,
                                       float sb, float shb,
                                       float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::ge_bbffffB(uint id, int sd, int fd,
+float* Ferrum::MetalEngine::ge_bbffffB(Ferrum::FunctionID id, int sd, int fd,
                                        const float* a, int lena, int offset_a, int stride_a,
                                        const float* b, int lenb, int offset_b, int stride_b,
                                        float sa, float sha,
                                        float sb, float shb,
                                        float* result, int len, int offset, int stride) { return nullptr; }
 // general uplo functions
-float* Ferrum::MetalEngine::uplo_bB(uint id, int sd, int unit, int bottom,
+float* Ferrum::MetalEngine::uplo_bB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                     const float* a, int lena, int offset_a, int stride_a,
                                     float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::uplo_bfB(uint id, int sd, int unit, int bottom,
+float* Ferrum::MetalEngine::uplo_bfB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float sa,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::uplo_fbB(uint id, int sd, int fd, float sa,
+float* Ferrum::MetalEngine::uplo_fbB(Ferrum::FunctionID id, int sd, int fd, float sa,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::uplo_bbB(uint id, int sd, int unit, int bottom,
+float* Ferrum::MetalEngine::uplo_bbB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      const float* b, int lenb, int offset_b, int stride_b,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::uplo_bBB(uint id, int sd, int unit, int bottom,
+float* Ferrum::MetalEngine::uplo_bBB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float* b, int lenb, int offset_b, int stride_b,
                                      float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::uplo_bffffB(uint id, int sd, int unit, int bottom,
+float* Ferrum::MetalEngine::uplo_bffffB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                         const float* a, int lena, int offset_a, int stride_a,
                                         float sa, float sha,
                                         float sb, float shb,
                                         float* result, int len, int offset, int stride) { return nullptr; }
-float* Ferrum::MetalEngine::uplo_bbffffB(uint id, int sd, int unit, int bottom,
+float* Ferrum::MetalEngine::uplo_bbffffB(Ferrum::FunctionID id, int sd, int unit, int bottom,
                                          const float* a, int lena, int offset_a, int stride_a,
                                          const float* b, int lenb, int offset_b, int stride_b,
                                          float sa, float sha,
