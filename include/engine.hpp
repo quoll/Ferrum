@@ -23,8 +23,12 @@
 namespace Ferrum {
 
   class MetalEngine {
+
+    using BufferAction = std::function<void(std::vector<MTL::Buffer*>&, int)>;
+    BufferAction emptyAction;
+
     public:
-      MetalEngine(const char* path) ;
+      MetalEngine(const char* path);
       ~MetalEngine();
 
       float* vect_add(const float* a, int lena, const float* b, int lenb, float* result, int len);

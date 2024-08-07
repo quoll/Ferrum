@@ -138,8 +138,8 @@ void printCode(std::vector<std::string>& names, const char* header, const char* 
 
   headerFile << "// This file is auto-generated\n" << std::endl;
   headerFile << "#pragma once\n" << std::endl;
-  headerFile << "#ifndef _FUNCTIONS_H" << std::endl;
-  headerFile << "#define _FUNCTIONS_H\n" << std::endl;
+  headerFile << "#ifndef _FUNCTIONS_HPP" << std::endl;
+  headerFile << "#define _FUNCTIONS_HPP\n" << std::endl;
   headerFile << "#include <string>" << std::endl;
   headerFile << "#include <unordered_map>\n" << std::endl;
   headerFile << "namespace Ferrum {\n" << std::endl;
@@ -154,9 +154,9 @@ void printCode(std::vector<std::string>& names, const char* header, const char* 
     headerFile << std::endl;
   }
   headerFile << "  };\n" << std::endl;
-  headerFile << "  extern std::unordered_map<std::string, FunctionID> functionMap;\n" << std::endl;
+  headerFile << "  extern std::unordered_map<std::string, FunctionID>* functionMap;\n" << std::endl;
   headerFile << "} // namespace Ferrum\n" << std::endl;
-  headerFile << "#endif // _FUNCTIONS_H\n" << std::endl;
+  headerFile << "#endif // _FUNCTIONS_HPP\n" << std::endl;
   headerFile.close();
 
   std::ofstream sourceFile(cpp);
@@ -170,12 +170,18 @@ void printCode(std::vector<std::string>& names, const char* header, const char* 
   sourceFile << "#include \"" << headerName << "\"\n" << std::endl;
   sourceFile << "#include <unordered_map>\n" << std::endl;
   sourceFile << "namespace Ferrum {" << std::endl;
-  sourceFile << "  std::unordered_map<std::string, FunctionID> functionMap;\n}\n" << std::endl;
-  sourceFile << "__attribute__((constructor)) void initFunctionMap() {" << std::endl;
+  sourceFile << "  std::unordered_map<std::string, FunctionID>* functionMap;\n" << std::endl;
+  sourceFile << "  __attribute__((constructor)) void initFunctionMap() {" << std::endl;
+  sourceFile << "    functionMap = new std::unordered_map<std::string, FunctionID>();" << std::endl;
+  sourceFile << "    std::unordered_map<std::string, FunctionID>& fnMap = *functionMap;" << std::endl;
   for (const std::string& fn : names) {
-    sourceFile << "  Ferrum::functionMap[\"" << fn << "\"] = Ferrum::" << fn << ";" << std::endl;
+    sourceFile << "    fnMap[\"" << fn << "\"] = " << fn << ";" << std::endl;
   }
-  sourceFile << "}\n" << std::endl;
+  sourceFile << "  }\n" << std::endl;
+  sourceFile << "  __attribute__((destructor)) void cleanupFunctionMap() {" << std::endl;
+  sourceFile << "    delete functionMap;" << std::endl;
+  sourceFile << "    functionMap = nullptr;" << std::endl;
+  sourceFile << "  }\n\n} // namespace Ferrum\n" << std::endl;
   sourceFile.close();
 }
 

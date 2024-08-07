@@ -23,7 +23,8 @@ MTL::Library* initLibrary(MTL::Device* device, const char* path);
 
 
 // constructor for Ferrum::MetalEngine
-Ferrum::MetalEngine::MetalEngine(const char* path) {
+Ferrum::MetalEngine::MetalEngine(const char* path) :
+    emptyAction([](std::vector<MTL::Buffer*>&, int) {}) {
   DBG("Getting Metal device");
   device = getDevice();
   DBG("Initializing library...");
@@ -61,11 +62,10 @@ Ferrum::MetalEngine::MetalEngine(const char* path) {
       std::cerr << "Error: Failed to create pipeline state for: " << str(fnName) << std::endl;
     } else {
       DBG("Created pipeline state for: ", str(fnName));
-      auto idIt = functionMap.find(str(fnName));
-      if (idIt == functionMap.end()) {
+      auto idIt = functionMap->find(str(fnName));
+      if (idIt == functionMap->end()) {
         std::cerr << "Error: Unknown function: " << str(fnName) << std::endl;
       } else {
-        DBG("Saved pipeline state");
         computePipelineStates[static_cast<int>(idIt->second)] = pipelineState;
       }
     }
@@ -360,25 +360,49 @@ float* Ferrum::MetalEngine::vect_bB(Ferrum::FunctionID id, const float* a, int l
         encoder->setBuffer(buffers[0], 0, 0);
         encoder->setBytes(&offset_a, sizeof(offset_a), 1);
         encoder->setBytes(&stride_a, sizeof(stride_a), 2);
-        encoder->setBuffer(buffers[1], 0, 6);
-        encoder->setBytes(&offset, sizeof(offset), 7);
-        encoder->setBytes(&stride, sizeof(stride), 8);
+        encoder->setBuffer(buffers[1], 0, 3);
+        encoder->setBytes(&offset, sizeof(offset), 4);
+        encoder->setBytes(&stride, sizeof(stride), 5);
       },
-      [](std::vector<MTL::Buffer*>& buffers, int len) { });
+      emptyAction);
 }
 
 float* Ferrum::MetalEngine::vect_bfB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      float sa,
                                      float* result, int len, int offset, int stride) { return nullptr; }
+
 float* Ferrum::MetalEngine::vect_fbB(Ferrum::FunctionID id, float sa,
                                      const float* a, int lena, int offset_a, int stride_a,
                                      float* result, int len, int offset, int stride) { return nullptr; }
+
 float* Ferrum::MetalEngine::vect_bbB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      const float* b, int lenb, int offset_b, int stride_b,
-                                     float* result, int len, int offset, int stride) { return nullptr; }
+                                     float* result, int len, int offset, int stride) {
+  return call_metal(id, result, len, offset, stride,
+      [&]() {
+        MTL::Buffer* bufferA = device->newBuffer(a, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferB = device->newBuffer(b, sizeof(float) * lena, MTL::StorageModeShared);
+        MTL::Buffer* bufferR = device->newBuffer(sizeof(float) * len, MTL::StorageModeShared);
+        return std::vector<MTL::Buffer*>{bufferA, bufferB, bufferR};
+      },
+      [&](MTL::ComputeCommandEncoder* encoder, std::vector<MTL::Buffer*>& buffers) {
+        encoder->setBuffer(buffers[0], 0, 0);
+        encoder->setBytes(&offset_a, sizeof(offset_a), 1);
+        encoder->setBytes(&stride_a, sizeof(stride_a), 2);
+        encoder->setBuffer(buffers[1], 0, 3);
+        encoder->setBytes(&offset_b, sizeof(offset_b), 4);
+        encoder->setBytes(&stride_b, sizeof(stride_b), 5);
+        encoder->setBuffer(buffers[2], 0, 6);
+        encoder->setBytes(&offset, sizeof(offset), 7);
+        encoder->setBytes(&stride, sizeof(stride), 8);
+      },
+      emptyAction);
+}
+
 float* Ferrum::MetalEngine::vect_bBB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                      float* b, int lenb, int offset_b, int stride_b,
                                      float* result, int len, int offset, int stride) { return nullptr; }
+
 float* Ferrum::MetalEngine::vect_bffffB(Ferrum::FunctionID id, const float* a, int lena, int offset_a, int stride_a,
                                         float sa, float sha,
                                         float sb, float shb,
