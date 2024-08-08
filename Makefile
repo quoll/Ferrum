@@ -65,6 +65,8 @@ all: $(MTL_LIB) $(GEN_FILES) $(JAVA_CLASS) $(JAVA_TEST_CLASS) $(DYLIB) $(TEST_PR
 
 generate: $(GEN_FILES)
 
+jheader: $(JAVA_CLASS)
+
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
@@ -122,4 +124,4 @@ clean:
 	rm -f $(INCLUDE_DIR)/*.h
 
 # Phony targets
-.PHONY: all clean generate
+.PHONY: all clean generate jheader

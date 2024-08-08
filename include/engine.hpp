@@ -137,6 +137,11 @@ namespace Ferrum {
                         CreateBuffers createBuffers, SetBuffers setBuffers, CopyResults copyResults);
   };
 
+  inline FunctionID getFunctionID(const std::string& name) {
+    auto it = functionMap->find(name);
+    return (it == functionMap->end()) ? FunctionID::UNKNOWN : it->second;
+  }
+
 } // namespace Ferrum
 
 #endif // METAL_COMPUTE_HPP

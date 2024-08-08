@@ -26,6 +26,12 @@ public class FerrumEngine implements AutoCloseable {
 
     // implement operations
 
-    public native float[] add_vect(float[] a, float[] b);
+    public float[] vect_bbB(String fn, float[] a, float[] b) {
+        return vect_bbB(fn, a, 0, 1, b, 0, 1);
+    }
+
+    public native float[] vect_bbB(String fn,
+                                   float[] a, int offset_a, int stride_a,
+                                   float[] b, int offset_b, int stride_b);
 
 }

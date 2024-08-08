@@ -4,6 +4,8 @@
 #include "engine.hpp"
 #include <iostream>
 
+#define ILLEGAL_ARG_EX "java/lang/IllegalArgumentException"
+
 static jfieldID engineFieldID;
 
 JNIEXPORT jlong JNICALL Java_ferrum_FerrumEngine_init(JNIEnv* env, jclass cls, jstring path) {
@@ -28,7 +30,17 @@ JNIEXPORT void JNICALL Java_ferrum_FerrumEngine_close(JNIEnv* env, jclass cls, j
   delete e;
 }
 
-JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_add_1vect(JNIEnv* env, jobject obj, jfloatArray a, jfloatArray b) {
+JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bbB
+  (JNIEnv* env, jobject obj, jstring fn, jfloatArray a, jint offset_a, jint stride_a, jfloatArray b, jint offset_b, jint stride_b) {
+  const char* cfn = env->GetStringUTFChars(fn, NULL);
+  Ferrum::FunctionID fnId = Ferrum::getFunctionID(cfn);
+  if (fnId == Ferrum::FunctionID::UNKNOWN) {
+    std::string msg = "Unknown function:" + std::string(cfn);
+    env->ReleaseStringUTFChars(fn, cfn);
+    env->ThrowNew(env->FindClass(ILLEGAL_ARG_EX), msg.c_str());
+    return NULL;
+  }
+  env->ReleaseStringUTFChars(fn, cfn);
   Ferrum::MetalEngine* engine = reinterpret_cast<Ferrum::MetalEngine*>(env->GetLongField(obj, engineFieldID));
   int lena = env->GetArrayLength(a);
   int lenb = env->GetArrayLength(b);
@@ -37,7 +49,7 @@ JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_add_1vect(JNIEnv* env, jo
   jfloat *bb = env->GetFloatArrayElements(b, NULL);
   jfloatArray jresult = env->NewFloatArray(len);
   jfloat *res = env->GetFloatArrayElements(jresult, NULL);
-  engine->vect_bbB(Ferrum::vector_add, aa, lena, 0, 1, bb, lenb, 0, 1, res, len, 0, 1);
+  engine->vect_bbB(fnId, aa, lena, 0, 1, bb, lenb, 0, 1, res, len, 0, 1);
   env->ReleaseFloatArrayElements(a, aa, JNI_ABORT);
   env->ReleaseFloatArrayElements(b, bb, JNI_ABORT);
   env->ReleaseFloatArrayElements(jresult, res, 0);
