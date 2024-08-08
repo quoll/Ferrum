@@ -6,7 +6,7 @@ GXX = g++
 JAVA_HOME = $(shell /usr/libexec/java_home)
 
 # Directories
-SRC_DIR = Sources
+SRC_DIR = src
 MTL_DIR = Metal
 OBJ_DIR = obj
 LIB_DIR = lib

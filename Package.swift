@@ -19,7 +19,7 @@ let package = Package(
         .executableTarget(
             name: "numbertest",
             dependencies: [],
-            path: "Sources/numbertest",
+            path: "src/numbertest",
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal"]),
             ]),
