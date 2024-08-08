@@ -193,9 +193,36 @@ MTL::Device* getDevice() {
   return device;
 }
 
+extern "C" char binary_ferrum_bin_start[];
+extern "C" unsigned long long binary_ferrum_bin_size;
 
-// Initializes a Metal library with a device, reading the library from a file
-MTL::Library* initLibrary(MTL::Device* device, const char* path) {
+
+// Loads the Metal library from the dylib
+MTL::Library* loadFromDylib(MTL::Device* device) {
+  size_t size = (size_t)binary_ferrum_bin_size;
+  if (size == 0) {
+    std::cerr << "Error: Failed to find library" << std::endl;
+    return nullptr;
+  }
+  dispatch_data_t libraryData = dispatch_data_create(binary_ferrum_bin_start, size, nullptr, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+
+  NS::Error* pError = nullptr;
+  MTL::Library* library = device->newLibrary(libraryData, &pError);
+
+  if (pError != nullptr) {
+    std::cerr << "Bad data at: " << std::hex << binary_ferrum_bin_start << " to " << std::hex << (char*)binary_ferrum_bin_start + size << std::endl;
+    std::cerr << "Error: Loading library: " << str(pError->localizedDescription()) << std::endl;
+    return nullptr;
+  } else if (library == nullptr) {
+    std::cerr << "Error: Failed to create library" << std::endl;
+    return nullptr;
+  }
+
+  return library;
+}
+
+
+MTL::Library* loadFromPath(MTL::Device* device, const char* path) {
   DBG("Getting library path...");
   const NS::String* libPath = getLibPath(path);
   if (libPath == nullptr) {
@@ -224,6 +251,21 @@ MTL::Library* initLibrary(MTL::Device* device, const char* path) {
   DBG("Successfully loaded library: ", str(libPath));
 
   return library;
+}
+
+// Initializes a Metal library with a device, reading the library from a file
+MTL::Library* initLibrary(MTL::Device* device, const char* path = nullptr) {
+  MTL::Library* library;
+  if (path == nullptr) {
+    library = loadFromDylib(device);
+  }
+  if (library != nullptr) {
+    DBG("Loaded Metal library from dylib");
+    return library;
+  } else {
+    DBG("Loaded Metal library from path");
+    return loadFromPath(device, path);
+  }
 }
 
 

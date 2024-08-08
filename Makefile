@@ -3,6 +3,7 @@ JAVA = java
 JAVAC = javac
 GCC = gcc
 GXX = g++
+AS = as
 JAVA_HOME = $(shell /usr/libexec/java_home)
 
 # Directories
@@ -34,6 +35,10 @@ DYLIB = $(LIB_DIR)/libferrum.dylib
 # Metal library
 MTL_LIB = $(LIB_DIR)/ferrum.metallib
 
+# Metal library as data
+MTL_DAT = $(OBJ_DIR)/metallib.o
+DATA_WRAPPER = $(SRC_DIR)/util/metaldata.S
+
 # Utility programs
 UTIL_SRC = $(wildcard $(SRC_DIR)/util/*.cpp)
 UTIL_PROG = $(patsubst $(SRC_DIR)/util/%.cpp,$(UTIL_DIR)/%,$(UTIL_SRC))
@@ -53,7 +58,7 @@ JAVA_TEST_CLASS = $(patsubst $(TEST_DIR)/ferrum/%.java,$(CLASS_DIR)/ferrum/%.cla
 CFLAGS = -c -fPIC
 JAVA_INCLUDES = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/darwin"
 CPP_INCLUDES = -Iapple-include -I"$(INCLUDE_DIR)"
-CPP_FLAGS = -std=c++11 -Wno-c++11-extensions -Wno-c++11-extra-semi -Wno-c++17-extensions
+CPP_FLAGS = -std=c++11 -std=c++20 -Wno-c++11-extensions -Wno-c++11-extra-semi -Wno-c++17-extensions
 FRAMEWORKS = -framework Foundation -framework Metal
 
 ifdef DEBUG
@@ -66,6 +71,8 @@ all: $(MTL_LIB) $(GEN_FILES) $(JAVA_CLASS) $(JAVA_TEST_CLASS) $(DYLIB) $(TEST_PR
 generate: $(GEN_FILES)
 
 jheader: $(JAVA_CLASS)
+
+dat: $(MTL_DAT)
 
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -91,10 +98,15 @@ $(OBJ_DIR)/%.ir: $(MTL_DIR)/ferrum/%.metal | $(OBJ_DIR)
 $(MTL_LIB): $(MTL_OBJ) | $(LIB_DIR)
 	metallib -o $(MTL_LIB) $(MTL_OBJ)
 
+# Add the Metal library as data to the object files for the dynamic library
+$(MTL_DAT): $(MTL_LIB) | $(OBJ_DIR)
+	$(AS) -arch arm64 -I$(LIB_DIR) -o $@ $(DATA_WRAPPER)
+
 # Compile C++ utilities to executable
 $(UTIL_DIR)/%: $(SRC_DIR)/util/%.cpp | $(UTIL_DIR)
 	$(GXX) $(CPP_INCLUDES) $(CPP_FLAGS) $(FRAMEWORKS) -o $@ $<
 
+# Generate the C++ header and source files that contain the Metal shader function names
 $(GEN_FILES): $(UTIL_DIR)/generateNames | $(MTL_LIB)
 	$(UTIL_DIR)/generateNames -oh $(GEN_HPP) -os $(GEN_CPP)
 
@@ -103,7 +115,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/ferrum/%.cpp $(GEN_FILES) | $(OBJ_DIR)
 	$(GCC) $(CFLAGS) $(JAVA_INCLUDES) $(CPP_INCLUDES) $(CPP_FLAGS) -o $@ $<
 
 # Link dynamic library
-$(DYLIB): $(CPP_OBJ) | $(LIB_DIR)
+$(DYLIB): $(CPP_OBJ) $(MTL_DAT) | $(LIB_DIR)
 	$(GXX) -dynamiclib -o $@ $^ -lc $(FRAMEWORKS)
 
 # Build c++ test program
@@ -124,4 +136,4 @@ clean:
 	rm -f $(INCLUDE_DIR)/*.h
 
 # Phony targets
-.PHONY: all clean generate jheader
+.PHONY: all clean generate jheader dat

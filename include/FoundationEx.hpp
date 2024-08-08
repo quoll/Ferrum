@@ -27,11 +27,16 @@ namespace NS {
             bool fileExistsAtPath(const String* path, bool* isDir);
     };
 
+    class DataEx : public Data, public Referencing<DataEx> {
+        public:
+            static DataEx* asDataEx(Data* obj);
+            DataEx* dataCreateWithBytesNoCopy(const void* data, size_t length);
+    };
+
     namespace Private {
         namespace Class {
-            _NS_PRIVATE_DEF_CLS(NSBundleEx);
-            _NS_PRIVATE_DEF_CLS(NSStringEx);
             _NS_PRIVATE_DEF_CLS(NSFileManager);
+            _NS_PRIVATE_DEF_CLS(NSData);
         } // Class
 
 
@@ -41,6 +46,7 @@ namespace NS {
             _NS_PRIVATE_DEF_SEL(stringByAppendingPathExtension_, "stringByAppendingPathExtension:");
             _NS_PRIVATE_DEF_SEL(defaultManager, "defaultManager");
             _NS_PRIVATE_DEF_SEL(fileExistsAtPath_isDirectory_, "fileExistsAtPath:isDirectory:");
+            _NS_PRIVATE_DEF_SEL(dataWithBytesNoCopy_length_, "dataWithBytesNoCopy:length:");
         } // Selector
     } // Private
 
@@ -53,7 +59,7 @@ _NS_INLINE NS::BundleEx* NS::BundleEx::asBundleEx(NS::Bundle* bundle) {
 }
 
 _NS_INLINE NS::BundleEx* NS::BundleEx::mainBundle() {
-    return Object::sendMessage<BundleEx*>(_NS_PRIVATE_CLS(NSBundleEx), _NS_PRIVATE_SEL(mainBundle));
+    return Object::sendMessage<BundleEx*>(_NS_PRIVATE_CLS(NSBundle), _NS_PRIVATE_SEL(mainBundle));
 }
 
 _NS_INLINE NS::String* NS::BundleEx::pathForResource(const NS::String* name, const NS::String* Ex) {
@@ -82,6 +88,16 @@ _NS_INLINE NS::FileManager* NS::FileManager::defaultManager() {
 
 _NS_INLINE bool NS::FileManager::fileExistsAtPath(const NS::String* path, bool* isDir) {
     return Object::sendMessage<bool>(this, _NS_PRIVATE_SEL(fileExistsAtPath_isDirectory_), path, isDir);
+}
+
+// NS::DataEx methods
+
+_NS_INLINE NS::DataEx* NS::DataEx::asDataEx(NS::Data* data) {
+    return static_cast<DataEx*>(data);
+}
+
+_NS_INLINE NS::DataEx* NS::DataEx::dataCreateWithBytesNoCopy(const void* data, size_t length) {
+    return Object::sendMessage<DataEx*>(_NS_PRIVATE_CLS(NSData), _NS_PRIVATE_SEL(dataWithBytesNoCopy_length_), data, length);
 }
 
 #endif // FNDN_EX_HPP
