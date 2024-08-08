@@ -30,6 +30,21 @@ JNIEXPORT void JNICALL Java_ferrum_FerrumEngine_close(JNIEnv* env, jclass cls, j
   delete e;
 }
 
+JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bB
+  (JNIEnv* env, jobject obj, jstring fn, jfloatArray a, jint offset_a, jint stride_a) {
+  return NULL;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bfB
+  (JNIEnv* env, jobject obj, jstring fn, jfloatArray a, jint offset_a, jint stride_a, jfloat sa) {
+  return NULL;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1fbB
+  (JNIEnv* env, jobject obj, jstring fn, jfloat sa, jfloatArray a, jint offset_a, jint stride_a) {
+  return NULL;
+}
+
 JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bbB
   (JNIEnv* env, jobject obj, jstring fn, jfloatArray a, jint offset_a, jint stride_a, jfloatArray b, jint offset_b, jint stride_b) {
   const char* cfn = env->GetStringUTFChars(fn, NULL);
@@ -54,5 +69,21 @@ JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bbB
   env->ReleaseFloatArrayElements(b, bb, JNI_ABORT);
   env->ReleaseFloatArrayElements(jresult, res, 0);
   return jresult;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bBB
+  (JNIEnv* env, jobject obj, jstring fn, jfloatArray a, jint offset_a, jint stride_a, jfloatArray b, jint offset_b, jint stride_b) {
+  return NULL;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bffffB
+  (JNIEnv* env, jobject obj, jstring fn, jfloatArray a, jint offset_a, jint stride_a, jfloat sa, jfloat sha, jfloat sb, jfloat shb) {
+  return NULL;
+}
+
+JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_vect_1bbffffB
+  (JNIEnv* env, jobject obj, jstring fn, jfloatArray a, jint offset_a, jint stride_a, jfloatArray b, jint offset_b, jint stride_b,
+   jfloat sa, jfloat sha, jfloat sb, jfloat shb) {
+  return NULL;
 }
 
