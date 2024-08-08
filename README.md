@@ -31,7 +31,7 @@ While Objective-C does support this mechanism of calling functions with the data
 This may seem completely incompatible with C++, but it isn't since everything still has to happen via the `objc_msgSend` function entry point.
 
 ### Foundation Classes
-In trying to learn how to code in Metal, I followed [sample code from Apple](https://developer.apple.com/metal/sample-code/) and discovered that it was all in C++. This is enabled by a set of open-source C++ headers for integrating with the Foundation Classes in MacOS. While they don't cover everything, they provide a sufficient roadmap for full and efficient integration of the Objective-C APIs with C++ code.
+After starting to code in Metal with Swift, I found that [sample code from Apple](https://developer.apple.com/metal/sample-code/) has all been implemented in C++. This is enabled by a set of open-source C++ headers for integrating with the Foundation Classes in MacOS. While they don't cover everything, they provide a sufficient roadmap for full and efficient integration of the Objective-C APIs with C++ code, leading me to implement extensions that provide access to whichever part of the Objective-C APIs may be needed. See [FoundationEx.hpp](https://github.com/quoll/Ferrum/blob/main/include/FoundationEx.hpp) for more.
 
 ### Metal
 Like the Foundation Classes, the Metal APIs are all available via C++ classes that wrap the Objective-C APIs. This allows the selection and configuration of a GPU device, setting up compute pipelines, loading code into the GPU (this code is called a "Shader") and executing it with appropriate parameters.
