@@ -31,10 +31,8 @@ namespace Ferrum {
       MetalEngine(const char* path);
       ~MetalEngine();
 
-      float* vect_add(const float* a, int lena, const float* b, int lenb, float* result, int len);
-      //
       // Dispatch functions
-      // f: float, b: buffer, B: in/out buffer
+      // f: float, b: buffer, B: in/out buffer. The final buffer is always an out-only buffer (shown as B)
       // Buffers are *always* followed by: length, offset, stride
 
       // general vector functions

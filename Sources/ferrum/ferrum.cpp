@@ -37,7 +37,6 @@ JNIEXPORT jfloatArray JNICALL Java_ferrum_FerrumEngine_add_1vect(JNIEnv* env, jo
   jfloat *bb = env->GetFloatArrayElements(b, NULL);
   jfloatArray jresult = env->NewFloatArray(len);
   jfloat *res = env->GetFloatArrayElements(jresult, NULL);
-  // engine->vect_add(aa, lena, bb, lenb, res, len);
   engine->vect_bbB(Ferrum::vector_add, aa, lena, 0, 1, bb, lenb, 0, 1, res, len, 0, 1);
   env->ReleaseFloatArrayElements(a, aa, JNI_ABORT);
   env->ReleaseFloatArrayElements(b, bb, JNI_ABORT);
