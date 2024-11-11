@@ -33,7 +33,7 @@ This may seem incompatible with C++, but that is just because everything is bein
 ### Foundation Classes
 After starting to code in Metal with Swift, I discovered [sample Metal code from Apple](https://developer.apple.com/metal/sample-code/) that is all implemented in C++. This is accomplished with a set of open-source C++ headers for integrating with the Foundation Classes in MacOS. While they don't cover everything, they provide a sufficient roadmap for full and efficient integration of the Objective-C APIs with C++ code, leading me to implement extensions that provide access to whichever part of the Objective-C APIs may be needed. See [FoundationEx.hpp](https://github.com/quoll/Ferrum/blob/main/include/FoundationEx.hpp) for more.
 
-#### Overview
+#### Foundation and Metal Classes Overview
 Using a series of macros for easy and consistent declarations, the Foundation headers create a static array of object and method handles that the programmer needs to access. The original examples only included those objects and method identifiers needed by that code, so if anything else is required then these need to be added to the static list.
 
 A set of macros are used to define which messages and arguments should be passed to a common function that uses `msgSend` to do the actual method dispatch.
@@ -53,20 +53,45 @@ Metal code is often included inside a program as text, where it can then be comp
 
 I've ported most of the Neanderthal CUDA code into Metal, and hope to finish the rest soon. While this is mostly about changing the structure for each shader function, Neanderthal also includes functions for every CUDA operation, which is a much more extensive mathematics library than Metal offers. I've implemented the missing functions using [Taylor Series](https://en.wikipedia.org/wiki/Taylor_series) expansions, which is how these operations are typically performed.
 
+**TODO:** The random functions and dot products are the main things missing.
+
 ## Build
 
-Due to the many parts of this project, it is built using make. This happens in a few phases, which relates to the structure of the library.
+Due to the many parts of this project, it is built using make. This happens in a few phases, which relates to the structure of the library. Be sure that you have the full toolchain available. My XCode installation places this at:
+```
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+```
 
-### Metal Compilation
-
-### Metal Library Object Embedding
+### Metal Compilation and Linking
+Compiling is done via the `metal` command, and generates a _Metal_ object files. These are then linked into a Metal library using the command `metallib`. At this point, the library can be loaded into the GPU directly. However, this would be a separate library from the C++ code needed to load it, meaning that users would need to manage 2 files rather than one. So this file will undergo some extra operations below in order to embedded it in the main library file.
 
 ### Utility Code Generation
+For fast lookups, I have included a map of names to function pointers, along with an array of functions indexed by enumeration. These are created by a utility program in [src/util/generateNames.cpp](https://github.com/quoll/Ferrum/blob/main/src/util/generateNames.cpp) which loads the metal library, then writes each function symbol into a C++ enumeration in a header file, as well as a map of string-to-function-pointers in a C++ source file. These get generated, compiled, and linked during a standard build.
+
+### Metal Library Object Embedding
+The normal linker does not understand Metal object files or libraries. Instead, Ferrum packs the metal library into a binary data "blob". This is done with a small assembly source file at [`src/util/metaldata.S`](https://github.com/quoll/Ferrum/blob/main/src/util/metaldata.S) that includes the generated `ferrum.metallib` file as binary data. The output of this step is `metallib.o`, which is just that raw data, wrapped with appropriate symbols for the linker to load it in.
+
+This data is referenced by symbol name in [`src/ferrum/engine.cpp`](https://github.com/quoll/Ferrum/blob/main/src/ferrum/engine.cpp#L196-L207). The data is loaded at runtime using `dispatch_data_create`, and provided directly to the Metal device (the GPU).
 
 ### C++ Compilation
 
-### Linking
+The C++ code is grouped into 3 main areas:
+* `engine.cpp`: Initializing Metal, and dispatching calls to the GPU. This code makes heavy use of the Apple Foundation classes described above.
+* `functions.cpp`: Creates a `std::unordered_map<std::string, FunctionID>` that contains the identifiers for each function in the library, allowing for fast lookups by name. This is generated as part of the build so that it keeps up to date with new operations that are added to the Metal sources
+* `ferrum.cpp`: The JNI bridging code. This includes the `init` and `close` functions, as well as functions for each of the argument patterns expected for functions called by Neanderthal. These functions reference operations by name, which is why the name-to-functionID map was created.
 
+### Linking
+Linking will bring together the object files generated from the C++ sources, along with the binary data found in `metallib.o`. It also includes the Foundation and Metal frameworks referenced by `engine.cpp`. The output of this step is the file `libferrum.dylib`, which is the binary library that the Java system will load.
+
+### Java Runtime
+The [`ferrum.FerrumEngine`](https://github.com/quoll/Ferrum/blob/main/src/ferrum/FerrumEngine.java) class handles the interface to the Metal library. When the class is loaded, it statically loads the generated dylib file via:
+```
+System.loadLibrary("ferrum");
+```
+It also handles initialization and closing, along with dispatch to each function using JNI. Dispatch is done via function names along with the argument patterns (e.g. 1 array in, 1 array out).
+
+### Clojure Library
+**TODO:** Neanderthal defines an "engine" protocol that expects each of the functions that the Ferrum library has implemented. I still need to write an appropriate bridge to implement this protocol for Ferrum.
 
 ## Future
 While I want to get this finished and integrated into Neanderthal, it has provided me with the necessary background to move past this and into [Apple's Core ML](https://developer.apple.com/documentation/coreml) API. This provides an abstraction for Neural Networks without needing to build them by hand from linear algebra. However, linear algebra operations are still available, and these are provided via a system that incorporates both the Metal subsystem and also Apple's Neural Processing Units, which operate similarly to GPUs. This is a more compelling target, as it offers greater scope for hardware acceleration, while also providing more complex operations.
