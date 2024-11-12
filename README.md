@@ -51,7 +51,7 @@ Like the Foundation Classes, the Metal APIs are all available via C++ classes th
 
 Metal code is often included inside a program as text, where it can then be compiled and loaded into the GPU on the fly. However, Metal can also be pre-compiled and loaded as a binary object. Since the implementation of the linear algebra operations in Neanderthal is typically small and simple, this project has placed the Metal code into its own file where it gets compiled into a binary library.
 
-I've ported most of the Neanderthal CUDA code into Metal, and hope to finish the rest soon. While this is mostly about changing the structure for each shader function, Neanderthal also includes functions for every CUDA operation, which is a much more extensive mathematics library than Metal offers. I've implemented the missing functions using [Taylor Series](https://en.wikipedia.org/wiki/Taylor_series) expansions, which is how these operations are typically performed.
+I've ported most of the Neanderthal CUDA code [into Metal](https://github.com/quoll/Ferrum/tree/main/Metal/ferrum), and hope to finish the rest soon. While this is mostly about changing the structure for each shader function, Neanderthal also includes functions for every CUDA operation, which is a much more extensive mathematics library than Metal offers. I've implemented the missing functions using [Taylor Series](https://en.wikipedia.org/wiki/Taylor_series) expansions, which is how these operations are typically performed.
 
 **TODO:** The random functions and dot products are the main things missing.
 
