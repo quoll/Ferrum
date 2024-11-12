@@ -63,7 +63,7 @@ Due to the many parts of this project, it is built using make. This happens in a
 ```
 
 ### Metal Compilation and Linking
-Compiling is done via the `metal` command, and generates a _Metal_ object files. These are then linked into a Metal library using the command `metallib`. At this point, the library can be loaded into the GPU directly. However, this would be a separate library from the C++ code needed to load it, meaning that users would need to manage 2 files rather than one. So this file will undergo some extra operations below in order to embedded it in the main library file.
+Compiling is done via the `metal` command, and generates _Metal_ object files. These are then linked into a Metal library using the command `metallib`. At this point, the library can be loaded into the GPU directly. However, this would be a separate library from the C++ code needed to load it, meaning that users would need to manage 2 files rather than one. So this file will undergo some extra operations below in order to embedded it in the main library file.
 
 ### Utility Code Generation
 For fast lookups, I have included a map of names to function pointers, along with an array of functions indexed by enumeration. These are created by a utility program in [src/util/generateNames.cpp](https://github.com/quoll/Ferrum/blob/main/src/util/generateNames.cpp) which loads the metal library, then writes each function symbol into a C++ enumeration in a header file, as well as a map of string-to-function-pointers in a C++ source file. These get generated, compiled, and linked during a standard build.
